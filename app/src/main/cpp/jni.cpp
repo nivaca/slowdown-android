@@ -7,6 +7,7 @@
 
 #include "decoder.h"
 #include "engine.h"
+#include "exporter.h"
 #include "output.h"
 
 using namespace slowdown;
@@ -21,6 +22,7 @@ Player* player() {
 std::unique_ptr<Decoder> decoder;
 
 std::shared_ptr<Audio> audio() { return player()->audio(); }
+std::unique_ptr<Export> job;  // la exportación en curso, o la última
 
 }  // namespace
 
@@ -87,5 +89,33 @@ FN(jint, counting)(JNIEnv*, jobject) {
     auto c = player()->counting();
     return c ? c->first * 100 + c->second : -1;
 }
+
+// La exportación: empieza en un hilo; su avance (0 a 1), si terminó, su error, cancelarla
+FN(jstring, exportStart)(JNIEnv* env, jobject, jint fd, jint format, jdouble start, jdouble end, jdouble speed,
+                         jdouble pitch, jboolean formants, jint quality, jint channels, jint filter, jdouble gain) {
+    auto a = audio();
+    if (!a) return env->NewStringUTF("no file");
+    job.reset();
+    ExportSettings s;
+    s.format = format;
+    s.start = start;
+    s.end = end;
+    s.speed = speed;
+    s.pitch = pitch;
+    s.formants = formants;
+    s.quality = quality;
+    s.channels = channels;
+    s.filter = filter;
+    s.gain = gain;
+    job = start_export(a, fd, s);
+    return nullptr;
+}
+FN(jdouble, exportProgress)(JNIEnv*, jobject) { return job ? job->progress() : 0.0; }
+FN(jboolean, exportDone)(JNIEnv*, jobject) { return !job || job->done(); }
+FN(jstring, exportError)(JNIEnv* env, jobject) {
+    return job && job->done() && !job->error().empty() ? env->NewStringUTF(job->error().c_str()) : nullptr;
+}
+FN(void, exportCancel)(JNIEnv*, jobject) { if (job) job->cancel(); }
+FN(void, exportRelease)(JNIEnv*, jobject) { job.reset(); }
 
 FN(jdouble, maxEarlier)(JNIEnv*, jobject, jint rate, jdouble bpm) { return max_earlier(rate, bpm); }

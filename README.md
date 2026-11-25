@@ -96,7 +96,9 @@ What it does
   mix without its centre (where the voice and the solo usually are), only
   the bass, or everything but the bass.
 
-Not yet in this version (it is in py-slowdown): exporting the audio.
+- Exports the recording, or the selection, as it sounds (menu > Export the
+  audio): at the speed and pitch chosen, and as it is heard, if asked; in
+  WAV or M4A (AAC). (py-slowdown also writes FLAC, MP3 and Opus.)
 
 Building
 --------

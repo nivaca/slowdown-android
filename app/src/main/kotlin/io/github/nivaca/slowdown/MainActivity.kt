@@ -367,6 +367,7 @@ class MainActivity : Activity(), WaveformView.Listener {
             }
             EXPORT -> writeBookmarks(target)
             EXPORT_SLX -> writeSlx(target)
+            EXPORT_AUDIO -> exportAudioTo(target)
             IMPORT_SLX -> readSlx(target)
             TREE -> {
                 contentResolver.takePersistableUriPermission(target,
@@ -700,6 +701,129 @@ class MainActivity : Activity(), WaveformView.Listener {
             }
         }
         showRepeat()
+    }
+
+    // --- la exportación del audio: como suena, en WAV o M4A
+
+    private data class ExportChoice(val range: Pair<Double, Double>?, val m4a: Boolean, val heard: Boolean)
+    private var exportChoice: ExportChoice? = null
+
+    private fun exportAudioDialog() {
+        if (!loaded) return
+        if (!Engine.done()) {
+            Toast.makeText(this, R.string.still_reading, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val selection = session.selection
+        val box = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(24), dp(8), dp(24), 0)
+        }
+        fun label(text: Int) = TextView(this).apply { setText(text); setPadding(0, dp(8), 0, 0) }
+        val what = android.widget.RadioGroup(this)
+        val whole = android.widget.RadioButton(this).apply { id = View.generateViewId(); setText(R.string.export_whole) }
+        val part = android.widget.RadioButton(this).apply {
+            id = View.generateViewId()
+            text = selection?.let { getString(R.string.export_selection, TimeFormat.long(it.first), TimeFormat.long(it.second)) } ?: ""
+            isEnabled = selection != null
+        }
+        what.addView(whole)
+        what.addView(part)
+        what.check(if (selection != null) part.id else whole.id)
+        val format = android.widget.RadioGroup(this)
+        val wav = android.widget.RadioButton(this).apply { id = View.generateViewId(); setText(R.string.format_wav) }
+        val m4a = android.widget.RadioButton(this).apply { id = View.generateViewId(); setText(R.string.format_m4a) }
+        format.addView(wav)
+        format.addView(m4a)
+        format.check(if (prefs.getBoolean("export_m4a", false)) m4a.id else wav.id)
+        val heard = CheckBox(this).apply { setText(R.string.export_heard); isChecked = prefs.getBoolean("export_heard", true) }
+        val st = semitoneKnob.format(semitoneKnob.value) + if (centKnob.value != 0) " " + centKnob.format(centKnob.value) else ""
+        val note = TextView(this).apply {
+            text = getString(R.string.export_note, number(session.speed), st)
+            setPadding(0, dp(8), 0, 0)
+        }
+        box.addView(label(R.string.export_what))
+        box.addView(what)
+        box.addView(label(R.string.export_format))
+        box.addView(format)
+        box.addView(heard)
+        box.addView(note)
+        AlertDialog.Builder(this)
+            .setTitle(R.string.export_audio_title)
+            .setView(android.widget.ScrollView(this).apply { addView(box) })
+            .setPositiveButton(R.string.export) { _, _ ->
+                val choice = ExportChoice(if (what.checkedRadioButtonId == part.id) selection else null,
+                    format.checkedRadioButtonId == m4a.id, heard.isChecked)
+                prefs.edit().putBoolean("export_m4a", choice.m4a).putBoolean("export_heard", choice.heard).apply()
+                exportChoice = choice
+                val stem = source?.name?.substringBeforeLast('.') ?: "audio"
+                val speed = if (session.speed != 1.0) " (${Math.round(session.speed * 100)}%)" else ""
+                val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+                    addCategory(Intent.CATEGORY_OPENABLE)
+                    type = if (choice.m4a) "audio/mp4" else "audio/wav"
+                    putExtra(Intent.EXTRA_TITLE, "$stem$speed.${if (choice.m4a) "m4a" else "wav"}")
+                }
+                @Suppress("DEPRECATION")
+                startActivityForResult(intent, EXPORT_AUDIO)
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun exportAudioTo(target: Uri) {
+        val choice = exportChoice ?: return
+        val name = describe(target).name
+        val pfd = try {
+            contentResolver.openFileDescriptor(target, "rw")
+        } catch (e: Exception) {
+            null
+        }
+        if (pfd == null) {
+            Toast.makeText(this, getString(R.string.cannot_export, name, "?"), Toast.LENGTH_LONG).show()
+            return
+        }
+        val channels = if (choice.heard) listOf("both", "left", "right", "mono", "no_centre").indexOf(session.channels).coerceAtLeast(0) else 0
+        val filter = if (choice.heard) listOf("none", "bass", "no_bass").indexOf(session.filter).coerceAtLeast(0) else 0
+        val volume = volumeKnob.value
+        val gain = if (choice.heard) (volume / 100.0) * (volume / 100.0) * (if (boost.isChecked) boostFactor() else 1.0) else 1.0
+        val (start, end) = choice.range ?: (0.0 to -1.0)
+        val failed = Engine.exportStart(pfd.fd, if (choice.m4a) 1 else 0, start, end, session.speed, session.pitch,
+            session.formants, prefs.getInt("quality", Engine.QUALITY_HIGH), channels, filter, gain)
+        pfd.close()  // (el motor tiene su propia copia)
+        if (failed != null) {
+            Toast.makeText(this, getString(R.string.cannot_export, name, failed), Toast.LENGTH_LONG).show()
+            return
+        }
+        val bar = android.widget.ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
+            max = 1000
+            setPadding(dp(24), dp(16), dp(24), dp(8))
+        }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(getString(R.string.exporting, name))
+            .setView(bar)
+            .setCancelable(false)
+            .setNegativeButton(R.string.cancel) { _, _ -> Engine.exportCancel() }
+            .show()
+        val poll = object : Runnable {
+            override fun run() {
+                bar.progress = (Engine.exportProgress() * 1000).toInt()
+                if (!Engine.exportDone()) {
+                    handler.postDelayed(this, 200)
+                    return
+                }
+                dialog.dismiss()
+                val error = Engine.exportError()
+                Engine.exportRelease()
+                if (error == null) {
+                    Toast.makeText(this@MainActivity, getString(R.string.exported, name), Toast.LENGTH_SHORT).show()
+                } else {
+                    // (lo que quedó a medias se borra)
+                    try { android.provider.DocumentsContract.deleteDocument(contentResolver, target) } catch (_: Exception) { }
+                    if (error != "cancelled") Toast.makeText(this@MainActivity, getString(R.string.cannot_export, name, error), Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+        handler.post(poll)
     }
 
     // --- cómo se oye: los nombres son los del .slx de py-slowdown
@@ -1069,7 +1193,7 @@ class MainActivity : Activity(), WaveformView.Listener {
             Engine.QUALITY_R2 -> R.id.quality_r2
             else -> R.id.quality_high
         }).isChecked = true
-        for (id in listOf(R.id.save, R.id.close, R.id.export_slx, R.id.import_slx)) menu.findItem(id).isEnabled = loaded
+        for (id in listOf(R.id.save, R.id.close, R.id.export_slx, R.id.import_slx, R.id.export_audio)) menu.findItem(id).isEnabled = loaded
         // Cómo se oye: los canales (no con un archivo mono) y el filtro
         menu.findItem(HEAR_CHANNELS.entries.firstOrNull { it.value == session.channels }?.key ?: R.id.hear_both).isChecked = true
         menu.findItem(HEAR_FILTERS.entries.firstOrNull { it.value == session.filter }?.key ?: R.id.hear_none).isChecked = true
@@ -1130,6 +1254,7 @@ class MainActivity : Activity(), WaveformView.Listener {
                 updateMenu()
             }
             R.id.licenses -> showLicenses()
+            R.id.export_audio -> exportAudioDialog()
             R.id.export_slx -> exportSlx()
             R.id.import_slx -> importSlx()
             R.id.slx_folder -> slxFolderDialog()
@@ -1334,6 +1459,7 @@ class MainActivity : Activity(), WaveformView.Listener {
         private const val EXPORT_SLX = 3
         private const val IMPORT_SLX = 4
         private const val TREE = 5
+        private const val EXPORT_AUDIO = 6
         const val SPEED_STEP = 0.05
         const val NORMAL_VOLUME = 100  // por ciento: el sonido de la grabación, lo más que da la perilla
         val BOOSTS = listOf(1.2, 1.5, 1.8, 2.0, 2.5, 3.0)  // por cuánto puede multiplicar el sonido el refuerzo

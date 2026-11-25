@@ -20,7 +20,7 @@ target_compile_definitions(rubberband PRIVATE NDEBUG)
 # Siempre optimizado, también en la versión de depuración: si no, R3 no alcanza el tiempo real
 target_compile_options(rubberband PRIVATE -O3)
 
-add_library(slowdown SHARED audio.cpp engine.cpp hearing.cpp output.cpp decoder.cpp codec.cpp jni.cpp)
+add_library(slowdown SHARED audio.cpp engine.cpp hearing.cpp exporter.cpp output.cpp decoder.cpp codec.cpp jni.cpp)
 # Los decodificadores propios, de un solo archivo cada uno: minimp3 (CC0), dr_flac y dr_wav (dominio público)
 target_include_directories(slowdown PRIVATE ${TOP}/third_party/minimp3
                                             ${TOP}/third_party/dr_libs)

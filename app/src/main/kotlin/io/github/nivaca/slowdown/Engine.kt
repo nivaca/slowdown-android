@@ -55,6 +55,16 @@ object Engine {
     external fun setLoop(start: Double, end: Double)
     external fun looping(): Boolean
 
+    /** Exports to FD (FORMAT 0 WAV, 1 M4A) from START to END seconds (END < 0: to the end), in a thread; null, or
+     * why it could not start. */
+    external fun exportStart(fd: Int, format: Int, start: Double, end: Double, speed: Double, pitch: Double,
+                             formants: Boolean, quality: Int, channels: Int, filter: Int, gain: Double): String?
+    external fun exportProgress(): Double
+    external fun exportDone(): Boolean
+    external fun exportError(): String?
+    external fun exportCancel()
+    external fun exportRelease()
+
     // El pulso que suena por 100 más cuántos son, o -1
     external fun counting(): Int
     external fun maxEarlier(rate: Int, bpm: Double): Double

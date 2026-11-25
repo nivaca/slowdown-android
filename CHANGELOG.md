@@ -33,6 +33,12 @@ All notable changes to Slowdown, the Android version of
   voice and the solo usually are), only the bass, or everything but the
   bass. The filters are the same linear-phase ones, at 250 Hz; each file
   keeps its way in its `.slx`.
+- Exports the recording, or the selection, as it sounds (menu > Export the
+  audio): at the speed and pitch chosen, and, if asked, as it is heard
+  (the channels, the filter, the volume). WAV (16 bits) or M4A (AAC, with
+  Android's encoder). py-slowdown's FLAC, MP3 and Opus are not here yet:
+  Android cannot write a FLAC file, has no MP3 encoder, and its Opus
+  encoder takes only 48 kHz.
 
 ## 1.1 — 2026-11-25
 

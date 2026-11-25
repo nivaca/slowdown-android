@@ -111,4 +111,18 @@ The stretching is done by the Rubber Band Library, © Particular Programs Ltd. (
     <string name="hear_none">No filter</string>
     <string name="hear_bass">Bass only (below 250 Hz)</string>
     <string name="hear_no_bass">Without the bass (above 250 Hz)</string>
+    <string name="export_audio">Export the audio…</string>
+    <string name="export_audio_title">Export the audio</string>
+    <string name="export_what">Export:</string>
+    <string name="export_whole">The whole file</string>
+    <string name="export_selection">The selection (%1$s – %2$s)</string>
+    <string name="export_format">Format:</string>
+    <string name="format_wav">WAV (16 bits, lossless)</string>
+    <string name="format_m4a">M4A (AAC, compressed)</string>
+    <string name="export_heard">As it is heard (the channels, the filter and the volume)</string>
+    <string name="export_note">At the speed and pitch chosen (%1$s×, %2$s).</string>
+    <string name="exporting">Exporting %1$s…</string>
+    <string name="exported">Exported %1$s</string>
+    <string name="cannot_export">Cannot export %1$s: %2$s</string>
+    <string name="still_reading">The file is still being read: wait a moment.</string>
 </resources>

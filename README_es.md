@@ -99,8 +99,9 @@ Qué hace
   mezcla sin su centro (donde suelen estar la voz y el solo), solo los
   graves o todo menos los graves.
 
-Todavía no está en esta versión (sí en py-slowdown): la exportación del
-audio.
+- Exporta la grabación, o la selección, como suena (menú > Exportar el
+  audio): a la velocidad y la altura elegidas, y como se oye, si se pide; en
+  WAV o M4A (AAC). (py-slowdown escribe además FLAC, MP3 y Opus.)
 
 Compilación
 -----------

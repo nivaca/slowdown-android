@@ -35,6 +35,7 @@
     </item>
     <item android:id="@+id/skip" android:title="@string/skip_length" />
     <item android:id="@+id/save" android:title="@string/save_slx" />
+    <item android:id="@+id/export_audio" android:title="@string/export_audio" />
     <item android:id="@+id/export_slx" android:title="@string/export_slx" />
     <item android:id="@+id/import_slx" android:title="@string/import_slx" />
     <item android:id="@+id/slx_folder" android:title="@string/slx_folder" />

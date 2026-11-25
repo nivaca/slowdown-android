@@ -33,6 +33,12 @@ Los cambios de Slowdown, la versión para Android de
   estar la voz y el solo), solo los graves o todo menos los graves. Los
   filtros son los mismos, de fase lineal, a 250 Hz; cada archivo guarda su
   manera en su `.slx`.
+- Exporta la grabación, o la selección, como suena (menú > Exportar el
+  audio): a la velocidad y la altura elegidas y, si se pide, como se oye
+  (los canales, el filtro, el volumen). WAV (16 bits) o M4A (AAC, con el
+  codificador de Android). El FLAC, el MP3 y el Opus de py-slowdown todavía
+  no están: Android no puede escribir un archivo FLAC, no tiene codificador
+  de MP3, y su codificador de Opus solo toma 48 kHz.
 
 ## 1.1 — 2026-11-25
 

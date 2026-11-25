@@ -110,4 +110,18 @@ El estiramiento lo hace la biblioteca Rubber Band, © Particular Programs Ltd. (
     <string name="hear_none">Sin filtro</string>
     <string name="hear_bass">Solo los graves (debajo de 250 Hz)</string>
     <string name="hear_no_bass">Sin los graves (encima de 250 Hz)</string>
+    <string name="export_audio">Exportar el audio…</string>
+    <string name="export_audio_title">Exportar el audio</string>
+    <string name="export_what">Exportar:</string>
+    <string name="export_whole">El archivo entero</string>
+    <string name="export_selection">La selección (%1$s – %2$s)</string>
+    <string name="export_format">Formato:</string>
+    <string name="format_wav">WAV (16 bits, sin pérdida)</string>
+    <string name="format_m4a">M4A (AAC, comprimido)</string>
+    <string name="export_heard">Como se oye (los canales, el filtro y el volumen)</string>
+    <string name="export_note">A la velocidad y la altura elegidas (%1$s×, %2$s).</string>
+    <string name="exporting">Exportando %1$s…</string>
+    <string name="exported">Exportado %1$s</string>
+    <string name="cannot_export">No se puede exportar %1$s: %2$s</string>
+    <string name="still_reading">El archivo todavía se está leyendo: espere un momento.</string>
 </resources>
