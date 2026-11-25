@@ -7,6 +7,8 @@
 
 #include <chrono>
 #include <cstdio>
+#include <cstdlib>
+#include <vector>
 #include <string>
 #include <thread>
 
@@ -30,7 +32,17 @@ int main(int argc, char** argv) {
         while (!audio->done()) std::this_thread::sleep_for(std::chrono::milliseconds(5));
         double took = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
         double seconds = double(audio->decoded()) / audio->rate;
-        std::printf("%s: %.1f s in %.2f s (%.0f times real time)\n", argv[i], seconds, took, seconds / took);
+        std::printf("%s: %.1f s in %.2f s (%.0f times real time), %s\n", argv[i], seconds, took, seconds / took,
+                    decoder->kind());
+        // Con SLOWDOWN_DUMP, las muestras en ese archivo (float, intercaladas), para comparar
+        if (const char* dump = getenv("SLOWDOWN_DUMP")) {
+            std::vector<float> all(size_t(audio->decoded() * audio->channels));
+            audio->read(0, audio->decoded(), all.data());
+            if (FILE* f = std::fopen(dump, "wb")) {
+                std::fwrite(all.data(), sizeof(float), all.size(), f);
+                std::fclose(f);
+            }
+        }
     }
     return 0;
 }

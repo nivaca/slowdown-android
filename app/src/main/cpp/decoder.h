@@ -59,4 +59,7 @@ private:
 
 std::unique_ptr<Decoder> open_codec(int fd, int64_t offset, int64_t length, std::string& error);
 
+// FRAMES cuadros de IN canales (intercalados) en OUT, mezclados en estéreo si son más de dos; si no, tal cual.
+void mix_to_stereo(const float* samples, size_t frames, int in, std::vector<float>& out);
+
 }  // namespace slowdown

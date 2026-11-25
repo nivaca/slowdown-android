@@ -79,13 +79,13 @@ void Decoder::stop() {
     if (thread_.joinable()) thread_.join();
 }
 
-void Decoder::append(const float* samples, size_t frames, int in) {
+void mix_to_stereo(const float* samples, size_t frames, int in, std::vector<float>& out) {
     if (in <= 2) {
-        audio_->append(samples, int64_t(frames));
+        out.assign(samples, samples + frames * size_t(in));
         return;
     }
     // Más de dos canales, en el orden habitual (FL FR FC LFE BL BR SL SR…): una mezcla estéreo, sin el LFE
-    mixed_.resize(frames * 2);
+    out.resize(frames * 2);
     const float side = 0.7071f;
     for (size_t f = 0; f < frames; ++f) {
         const float* s = samples + f * size_t(in);
@@ -96,9 +96,17 @@ void Decoder::append(const float* samples, size_t frames, int in) {
             else r += side * s[c];
         }
         if (in > 4) norm += side * float((in - 4 + 1) / 2);
-        mixed_[2 * f] = l / norm;
-        mixed_[2 * f + 1] = r / norm;
+        out[2 * f] = l / norm;
+        out[2 * f + 1] = r / norm;
     }
+}
+
+void Decoder::append(const float* samples, size_t frames, int in) {
+    if (in <= 2) {
+        audio_->append(samples, int64_t(frames));
+        return;
+    }
+    mix_to_stereo(samples, frames, in, mixed_);
     audio_->append(mixed_.data(), int64_t(frames));
 }
 
