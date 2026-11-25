@@ -61,9 +61,36 @@ object Playback {
     fun play(context: Context) {
         if (!loaded) return
         requestFocus(context)
-        Engine.play(0, 0.0, 0.0)
+        val count = countIn(context)
+        if (count.on) {
+            val prefs = prefs(context)
+            val beats = prefs.getInt("countin_beats", 4).coerceIn(1, CountInRules.MAX_BEATS)
+            val follow = prefs.getBoolean("countin_follow", true)
+            val tempo = CountInRules.tempo(count.bpm, session.speed, follow)
+            // Con un primer pulso, la grabación entra en el pulso más cercano de su rejilla; si no, con el desfase
+            val offset = firstBeat()?.let { first ->
+                CountInRules.gridOffset(Engine.position(), first, count.bpm.toDouble(), session.speed,
+                    Engine.maxEarlier(Engine.rate(), tempo))
+            } ?: count.offset
+            Engine.play(beats, tempo, offset)
+        } else {
+            Engine.play(0, 0.0, 0.0)
+        }
         PlaybackService.update(context, starting = true)
     }
+
+    // --- la cuenta previa: la del archivo (su .slx), o la de siempre
+
+    fun countIn(context: Context): CountIn = session.countIn ?: prefs(context).let {
+        CountIn(it.getBoolean("countin_on", false), it.getInt("countin_bpm", 100), 0.0)
+    }
+
+    fun setCountIn(context: Context, count: CountIn) {
+        session.countIn = count
+        prefs(context).edit().putBoolean("countin_on", count.on).putInt("countin_bpm", count.bpm).apply()
+    }
+
+    fun firstBeat(): Double? = session.bookmarks.firstOrNull { it.firstBeat }?.time
 
     fun pause(context: Context) {
         Engine.pause()

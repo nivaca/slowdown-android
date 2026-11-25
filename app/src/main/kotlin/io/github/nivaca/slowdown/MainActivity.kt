@@ -65,6 +65,8 @@ class MainActivity : Activity(), WaveformView.Listener {
     private lateinit var status: TextView
     private lateinit var playButton: ImageButton
     private lateinit var repeatButton: ImageButton
+    private lateinit var countButton: ImageButton
+    private val tapTempo = TapTempo()
     private lateinit var backButton: ImageButton
     private lateinit var forwardButton: ImageButton
     private lateinit var speedKnob: Knob
@@ -173,6 +175,7 @@ class MainActivity : Activity(), WaveformView.Listener {
         status = findViewById(R.id.status)
         playButton = findViewById(R.id.play)
         repeatButton = findViewById(R.id.repeat)
+        countButton = findViewById(R.id.count)
         backButton = findViewById(R.id.back)
         forwardButton = findViewById(R.id.forward)
         speedKnob = findViewById(R.id.speed)
@@ -195,7 +198,15 @@ class MainActivity : Activity(), WaveformView.Listener {
             showPlaying()
             PlaybackService.update(this)
         }
-        findViewById<View>(R.id.to_start).setOnClickListener { seek(0.0) }
+        // Al principio; con la cuenta previa, al primer pulso, si lo hay
+        findViewById<View>(R.id.to_start).setOnClickListener {
+            seek(Playback.firstBeat()?.takeIf { Playback.countIn(this).on } ?: 0.0)
+        }
+        countButton.setOnClickListener { setCountOn(!Playback.countIn(this).on) }
+        countButton.setOnLongClickListener {
+            countDialog()
+            true
+        }
         findViewById<View>(R.id.to_end).setOnClickListener { seek(Engine.duration()) }
         repeating(backButton) { jump(-skip.toDouble()) }
         repeating(forwardButton) { jump(skip.toDouble()) }
@@ -438,6 +449,7 @@ class MainActivity : Activity(), WaveformView.Listener {
         showSpeed()
         showPitch()
         showMarks()
+        showCount()
         showPlaying()
         updateMenu()
     }
@@ -470,6 +482,7 @@ class MainActivity : Activity(), WaveformView.Listener {
         showSpeed()
         showPitch()
         showMarks()
+        showCount()
         updateMenu()
         PlaybackService.update(this)  // (la notificación, si la hay, muestra el archivo nuevo)
     }
@@ -635,6 +648,9 @@ class MainActivity : Activity(), WaveformView.Listener {
                     status.text = if (done) "" else "${(100 * Engine.decoded() / maxOf(1.0, total)).roundToInt()} %"
                     if (done) applyRepeat()  // (el archivo entero se repite cuando está leído hasta su final)
                 }
+                // El pulso de la cuenta previa, grande sobre la onda (antes del primer golpe, nada)
+                val counting = Engine.counting()
+                waveform.count = if (counting >= 100) counting / 100 else null
                 if (Engine.takeEnded() || wasPlaying != Engine.playing()) {
                     wasPlaying = Engine.playing()
                     showPlaying()
@@ -683,6 +699,118 @@ class MainActivity : Activity(), WaveformView.Listener {
             }
         }
         showRepeat()
+    }
+
+    // --- la cuenta previa
+
+    private fun setCountOn(on: Boolean) {
+        Playback.setCountIn(this, Playback.countIn(this).copy(on = on))
+        showCount()
+    }
+
+    private fun showCount() {
+        val on = Playback.countIn(this).on
+        countButton.imageTintList = if (on) ColorStateList.valueOf(palette.wave) else null
+        countButton.setBackgroundColor(if (on) (palette.wave and 0x00ffffff) or 0x33000000 else Color.TRANSPARENT)
+    }
+
+    // Un golpe con el pulso de la música: el tempo de la grabación (si sigue la velocidad, lo oído a esa velocidad)
+    private fun tap(): Int? {
+        val heard = tapTempo.tap(System.nanoTime() / 1e9)
+        if (heard == null) {
+            Toast.makeText(this, R.string.tap_again, Toast.LENGTH_SHORT).show()
+            return null
+        }
+        val follow = prefs.getBoolean("countin_follow", true)
+        val bpm = CountInRules.recordingTempo(heard, session.speed, follow)
+        Playback.setCountIn(this, Playback.countIn(this).copy(bpm = bpm))
+        Toast.makeText(this, getString(R.string.tempo_taps, bpm, tapTempo.taps), Toast.LENGTH_SHORT).show()
+        return bpm
+    }
+
+    // El primer pulso de la grabación aquí: un marcador propio, uno solo por archivo
+    private fun firstBeatHere() {
+        if (!loaded) return
+        val here = Math.round(Engine.position() * 1000) / 1000.0
+        session.bookmarks.forEach { it.firstBeat = false }
+        val near = session.bookmarks.firstOrNull { kotlin.math.abs(it.time - here) < 0.05 }
+        if (near != null) near.firstBeat = true else session.bookmarks.add(Bookmark(here, "", true))
+        changed()
+    }
+
+    private fun countDialog() {
+        val count = Playback.countIn(this)
+        val box = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(24), dp(8), dp(24), 0)
+        }
+        fun row(label: Int, view: View): View = LinearLayout(this).apply {
+            gravity = android.view.Gravity.CENTER_VERTICAL
+            addView(TextView(this@MainActivity).apply { setText(label) },
+                LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+            addView(view)
+        }
+        val on = android.widget.Switch(this).apply { setText(R.string.count_toggle); isChecked = count.on }
+        val beats = android.widget.NumberPicker(this).apply {
+            minValue = 1
+            maxValue = CountInRules.MAX_BEATS
+            value = prefs.getInt("countin_beats", 4).coerceIn(1, CountInRules.MAX_BEATS)
+        }
+        val bpm = android.widget.NumberPicker(this).apply {
+            minValue = CountInRules.MIN_BPM
+            maxValue = CountInRules.MAX_BPM
+            value = count.bpm.coerceIn(CountInRules.MIN_BPM, CountInRules.MAX_BPM)
+            wrapSelectorWheel = false
+        }
+        val tapButton = Button(this).apply {
+            setText(R.string.tap)
+            tooltipText = getString(R.string.tap_hint)
+            setOnClickListener { tap()?.let { bpm.value = it } }
+        }
+        val follow = CheckBox(this).apply {
+            setText(R.string.follow_speed)
+            isChecked = prefs.getBoolean("countin_follow", true)
+        }
+        val offset = EditText(this).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL or InputType.TYPE_NUMBER_FLAG_SIGNED
+            setText(String.format(java.util.Locale.ROOT, "%.2f", count.offset))
+            minEms = 4
+        }
+        val summary = TextView(this).apply { setPadding(0, dp(8), 0, 0) }
+        fun explain() {
+            val tempo = CountInRules.tempo(bpm.value, session.speed, follow.isChecked)
+            var text = getString(R.string.count_summary, number(session.speed), beats.value, Math.round(tempo).toInt())
+            Playback.firstBeat()?.let { text += " " + getString(R.string.first_beat_grid, TimeFormat.long(it)) }
+            summary.text = text
+            offset.isEnabled = Playback.firstBeat() == null  // (con un primer pulso, el desfase lo da él)
+        }
+        beats.setOnValueChangedListener { _, _, _ -> explain() }
+        bpm.setOnValueChangedListener { _, _, _ -> explain() }
+        follow.setOnCheckedChangeListener { _, _ -> explain() }
+        box.addView(on)
+        box.addView(row(R.string.clicks, beats))
+        box.addView(row(R.string.tempo_bpm, LinearLayout(this).apply {
+            gravity = android.view.Gravity.CENTER_VERTICAL
+            addView(bpm)
+            addView(tapButton)
+        }))
+        box.addView(follow)
+        box.addView(row(R.string.recording_offset, offset))
+        box.addView(summary)
+        explain()
+        AlertDialog.Builder(this)
+            .setTitle(R.string.count_in)
+            .setView(android.widget.ScrollView(this).apply { addView(box) })
+            .setPositiveButton(R.string.ok) { _, _ ->
+                val seconds = offset.text.toString().replace(',', '.').toDoubleOrNull() ?: count.offset
+                prefs.edit().putInt("countin_beats", beats.value).putBoolean("countin_follow", follow.isChecked).apply()
+                Playback.setCountIn(this, CountIn(on.isChecked, bpm.value,
+                    seconds.coerceIn(-CountInRules.MAX_OFFSET, CountInRules.MAX_OFFSET)))
+                showCount()
+                save()
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
     }
 
     private fun showRepeat() {
@@ -1161,6 +1289,8 @@ class MainActivity : Activity(), WaveformView.Listener {
             KeyEvent.KEYCODE_I -> selectionEdge(start = true)
             KeyEvent.KEYCODE_O -> selectionEdge(start = false)
             KeyEvent.KEYCODE_L -> if (shift) saveLoop() else setRepeat(!session.repeat)
+            KeyEvent.KEYCODE_C -> if (shift) firstBeatHere() else setCountOn(!Playback.countIn(this).on)
+            KeyEvent.KEYCODE_T -> tap()
             KeyEvent.KEYCODE_ESCAPE -> setSelection(null)
             else -> return super.onKeyDown(keyCode, event)
         }

@@ -86,8 +86,14 @@ What it does
 - Plays on with the screen off, or with another app in front, with a media
   notification and the lock screen's controls.
 
-Not yet in this version (they are in py-slowdown): the count-in, the ways of
-hearing (one channel, without the centre, the bass) and exporting the audio.
+- Counts in before playing, as a metronome (the metronome button, or C;
+  hold it for its settings): the number of clicks and the tempo are chosen,
+  and the tempo can follow the speed and be measured by tapping with the
+  beat (T). With the recording's first beat marked (Shift+C), the recording
+  comes in on the nearest beat wherever playing starts.
+
+Not yet in this version (they are in py-slowdown): the ways of hearing (one
+channel, without the centre, the bass) and exporting the audio.
 
 Building
 --------

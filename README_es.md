@@ -89,9 +89,14 @@ Qué hace
 - Sigue sonando con la pantalla apagada, o con otra aplicación delante, con
   una notificación y los mandos de la pantalla de bloqueo.
 
-Todavía no están en esta versión (sí en py-slowdown): la cuenta previa, las
-maneras de oír (un canal, sin el centro, los graves) y la exportación del
-audio.
+- Cuenta antes de tocar, como un metrónomo (el botón del metrónomo, o C;
+  manténgalo apretado para sus ajustes): se eligen el número de golpes y el
+  tempo, que puede seguir la velocidad y medirse marcando el pulso (T). Con
+  el primer pulso de la grabación marcado (Mayús+C), la grabación entra en
+  el pulso más cercano donde sea que empiece a sonar.
+
+Todavía no están en esta versión (sí en py-slowdown): las maneras de oír (un
+canal, sin el centro, los graves) y la exportación del audio.
 
 Compilación
 -----------

@@ -88,4 +88,17 @@ El estiramiento lo hace la biblioteca Rubber Band, © Particular Programs Ltd. (
     <string name="slx_of_other">Este .slx es de %1$s. ¿Usarlo para %2$s?</string>
     <string name="slx_folder_title">Dónde se guardan los .slx</string>
     <string name="playback_channel">Reproducción</string>
+    <string name="count_in">Cuenta previa</string>
+    <string name="count_toggle">Contar antes de tocar</string>
+    <string name="count_button">Contar antes de tocar; mantenga apretado para sus ajustes</string>
+    <string name="clicks">Golpes:</string>
+    <string name="tempo_bpm">Tempo (BPM):</string>
+    <string name="tap">Marcar</string>
+    <string name="tap_hint">Marque el pulso de la música, unas cuantas veces: se mide el tempo</string>
+    <string name="tap_again">Marque otra vez, con el pulso…</string>
+    <string name="tempo_taps">Tempo: %1$d BPM (%2$d golpes)</string>
+    <string name="follow_speed">Seguir la velocidad</string>
+    <string name="recording_offset">Desfase de la grabación (s):</string>
+    <string name="count_summary">A la velocidad de ahora (%1$s×): %2$d golpes a %3$d BPM, y luego la grabación.</string>
+    <string name="first_beat_grid">A este tempo, la grabación entra en los pulsos de su primer pulso (%1$s).</string>
 </resources>

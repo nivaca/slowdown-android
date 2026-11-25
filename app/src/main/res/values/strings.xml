@@ -89,4 +89,17 @@ The stretching is done by the Rubber Band Library, © Particular Programs Ltd. (
     <string name="slx_of_other">This .slx is of %1$s. Use it for %2$s?</string>
     <string name="slx_folder_title">Where the .slx files are kept</string>
     <string name="playback_channel">Playback</string>
+    <string name="count_in">Count-in</string>
+    <string name="count_toggle">Count in before playing</string>
+    <string name="count_button">Count in before playing; hold for its settings</string>
+    <string name="clicks">Clicks:</string>
+    <string name="tempo_bpm">Tempo (BPM):</string>
+    <string name="tap">Tap</string>
+    <string name="tap_hint">Tap with the beat of the music, a few times: the tempo is measured</string>
+    <string name="tap_again">Tap again, with the beat…</string>
+    <string name="tempo_taps">Tempo: %1$d BPM (%2$d taps)</string>
+    <string name="follow_speed">Follow the speed</string>
+    <string name="recording_offset">Recording offset (s):</string>
+    <string name="count_summary">At the speed now (%1$s×): %2$d clicks at %3$d BPM, then the recording.</string>
+    <string name="first_beat_grid">The recording comes in on the beats of its first beat (%1$s) at this tempo.</string>
 </resources>

@@ -56,6 +56,8 @@ class WaveformView(context: Context, attrs: AttributeSet? = null) : View(context
     var bookmarks: List<Bookmark> = emptyList()
         set(value) { field = value; invalidate() }
     var follow = true  // la vista sigue a la posición
+    var count: Int? = null  // el pulso que suena en la cuenta previa, grande, en el centro
+        set(value) { if (value != field) { field = value; invalidate() } }
 
     // La vista: el segundo del borde izquierdo y los segundos por píxel
     private var start = 0.0
@@ -133,6 +135,17 @@ class WaveformView(context: Context, attrs: AttributeSet? = null) : View(context
         line.strokeWidth = 2 * density
         val x = xOf(position)
         canvas.drawLine(x, ruler, x, h, line)
+        count?.let { beat ->
+            countPaint.color = palette.cursor
+            countPaint.alpha = 170
+            countPaint.textSize = max(24 * density, (h - ruler) * 0.45f)
+            canvas.drawText("$beat", width / 2f, (ruler + h) / 2 - (countPaint.descent() + countPaint.ascent()) / 2, countPaint)
+        }
+    }
+
+    private val countPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        textAlign = Paint.Align.CENTER
+        typeface = android.graphics.Typeface.DEFAULT_BOLD
     }
 
     private fun drawWave(canvas: Canvas, w: Int, top: Float, height: Float) {

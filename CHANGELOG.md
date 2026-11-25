@@ -20,6 +20,14 @@ All notable changes to Slowdown, the Android version of
   no longer pauses when one leaves it; going back to it shows what is
   playing. It still pauses when the headphones are unplugged, or when
   another app takes the sound (a call).
+- The count-in of py-slowdown: clicks before playing (the metronome button;
+  hold it for its settings: how many clicks, the tempo, which can follow the
+  speed, and the offset of the recording). The tempo can be measured by
+  tapping with the beat (Tap, or T); with the first beat of the recording
+  marked (Shift+C), the recording comes in on the nearest beat wherever
+  playing starts, and Go to the start goes to that beat. The beat that
+  sounds is shown large on the waveform. Each file keeps its tempo in its
+  `.slx`.
 
 ## 1.1 — 2026-11-25
 

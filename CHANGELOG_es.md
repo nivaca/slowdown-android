@@ -20,6 +20,14 @@ Los cambios de Slowdown, la versión para Android de
   de los auriculares. La aplicación ya no se pausa al salir de ella; al
   volver, muestra lo que suena. Sigue pausándose si se desconectan los
   auriculares, o si otra aplicación toma el sonido (una llamada).
+- La cuenta previa de py-slowdown: golpes antes de tocar (el botón del
+  metrónomo; manténgalo apretado para sus ajustes: cuántos golpes, el tempo,
+  que puede seguir la velocidad, y el desfase de la grabación). El tempo se
+  puede medir marcando el pulso (Marcar, o T); con el primer pulso de la
+  grabación marcado (Mayús+C), la grabación entra en el pulso más cercano
+  donde sea que empiece a sonar, e Ir al principio va a ese pulso. El pulso
+  que suena se ve grande sobre la onda. Cada archivo guarda su tempo en su
+  `.slx`.
 
 ## 1.1 — 2026-11-25
 

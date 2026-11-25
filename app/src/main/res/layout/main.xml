@@ -53,6 +53,8 @@
             android:contentDescription="@string/to_end" />
         <ImageButton android:id="@+id/repeat" style="@style/Tool" android:layout_marginStart="8dp"
             android:src="@drawable/ic_repeat" android:contentDescription="@string/repeat" />
+        <ImageButton android:id="@+id/count" style="@style/Tool"
+            android:src="@drawable/ic_count" android:contentDescription="@string/count_button" />
     </LinearLayout>
 
     <LinearLayout
