@@ -124,4 +124,6 @@ El estiramiento lo hace la biblioteca Rubber Band, © Particular Programs Ltd. (
     <string name="exported">Exportado %1$s</string>
     <string name="cannot_export">No se puede exportar %1$s: %2$s</string>
     <string name="still_reading">El archivo todavía se está leyendo: espere un momento.</string>
+    <string name="lic_public_domain">dedicado al dominio público</string>
+    <string name="lic_buttons">las formas de los botones</string>
 </resources>

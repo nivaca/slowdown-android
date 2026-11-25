@@ -39,6 +39,8 @@ Los cambios de Slowdown, la versión para Android de
   codificador de Android). El FLAC, el MP3 y el Opus de py-slowdown todavía
   no están: Android no puede escribir un archivo FLAC, no tiene codificador
   de MP3, y su codificador de Opus solo toma 48 kHz.
+- La pantalla de las licencias, en español, lo dice todo en español (dos
+  notas estaban en inglés); capturas nuevas, con el metrónomo.
 
 ## 1.1 — 2026-11-25
 

@@ -39,6 +39,8 @@ All notable changes to Slowdown, the Android version of
   Android's encoder). py-slowdown's FLAC, MP3 and Opus are not here yet:
   Android cannot write a FLAC file, has no MP3 encoder, and its Opus
   encoder takes only 48 kHz.
+- The Licences screen in Spanish says all it says in Spanish (two notes
+  were in English); new screenshots, with the metronome.
 
 ## 1.1 — 2026-11-25
 

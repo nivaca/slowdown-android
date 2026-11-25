@@ -1361,7 +1361,15 @@ class MainActivity : Activity(), WaveformView.Listener {
         val rows = Licenses.components.map { c ->
             val version = if (c.name == "Slowdown") version else c.version
             val title = if (version.isEmpty()) c.name else "${c.name} $version"
-            "$title\n${c.license} · ${c.holder}"
+            // (lo que no es un aviso de derechos, en el idioma de la interfaz)
+            val note = when (c.name) {
+                "minimp3" -> " · " + getString(R.string.lic_public_domain)
+                "Material Icons" -> " (" + getString(R.string.lic_buttons) + ")"
+                else -> ""
+            }
+            val holder = c.holder + if (c.name == "minimp3") note else ""
+            val name = title + if (c.name == "Material Icons") note else ""
+            "$name\n${c.license} · $holder"
         }.toTypedArray()
         val header = TextView(this).apply {
             text = getString(R.string.licenses_intro)

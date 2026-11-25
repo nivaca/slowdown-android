@@ -25,7 +25,7 @@ object Licenses {
             listOf("GPL-3.0-or-later.txt"), "https://github.com/nivaca/slowdown-android"),
         Component("Rubber Band Library", "4.0.0", "© 2007–2024 Particular Programs Ltd.",
             "GPL-2.0-or-later", listOf("GPL-2.0-or-later.txt"), "https://breakfastquay.com/rubberband/"),
-        Component("minimp3", "", "lieff, dedicated to the public domain", "CC0-1.0",
+        Component("minimp3", "", "lieff", "CC0-1.0",
             listOf("CC0-1.0.txt"), "https://github.com/lieff/minimp3"),
         Component("dr_flac", "0.13.4", "© 2023 David Reid", "Unlicense OR MIT-0",
             listOf("Unlicense.txt", "MIT-0.txt"), "https://github.com/mackron/dr_libs"),
@@ -35,7 +35,7 @@ object Licenses {
             "Apache-2.0", listOf("Apache-2.0.txt"), "https://kotlinlang.org"),
         Component("LLVM libc++, libc++abi (Android NDK r29)", "", "The LLVM Project contributors",
             "Apache-2.0 WITH LLVM-exception", listOf("LLVM-libcxx.txt"), "https://libcxx.llvm.org"),
-        Component("Material Icons (the shapes of the buttons)", "", "© Google LLC", "Apache-2.0",
+        Component("Material Icons", "", "© Google LLC", "Apache-2.0",
             listOf("Apache-2.0.txt"), "https://github.com/google/material-design-icons"),
     )
 

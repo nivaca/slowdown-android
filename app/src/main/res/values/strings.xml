@@ -125,4 +125,6 @@ The stretching is done by the Rubber Band Library, © Particular Programs Ltd. (
     <string name="exported">Exported %1$s</string>
     <string name="cannot_export">Cannot export %1$s: %2$s</string>
     <string name="still_reading">The file is still being read: wait a moment.</string>
+    <string name="lic_public_domain">dedicated to the public domain</string>
+    <string name="lic_buttons">the shapes of the buttons</string>
 </resources>
