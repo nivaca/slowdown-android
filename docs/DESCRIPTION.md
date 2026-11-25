@@ -5,14 +5,18 @@ Slowdown plays audio slower or faster without changing its pitch, on an
 Android phone. It is for practising music and learning it by ear. Nicolas
 Vaughan made it in November 2026, as the Android version of py-slowdown,
 his program for the desktop (Python and Qt): the engine of py-slowdown was
-translated into C++, and the window was written again for a phone. Here I
-explain how it was made, in three stages.
+translated into C++, and the window was written again for a phone; the
+current one is 0.1. Here I explain how it was made, in four stages.
 
 Slowdown is free software, under the GNU General Public License, version 3
-or later. It includes the Rubber Band Library 4.0.0, by Breakfast Quay
-(GPL, version 2 or later), which does the stretching; minimp3, by Lion
-(CC0); and dr_flac and dr_wav, by David Reid (public domain, or MIT No
-Attribution). It uses no other library than those of Android itself.
+or later. It carries the Rubber Band Library 4.0.0, by Particular Programs
+Ltd. (Breakfast Quay), under the GPL, version 2 or later (used here under
+the GPL 3), which does the stretching; minimp3, by lieff (CC0); dr_flac and
+dr_wav, by David Reid (Unlicense or MIT No Attribution); the Kotlin
+standard library (Apache License 2.0); LLVM's libc++, linked into the
+engine (Apache License 2.0 with the LLVM exceptions); and the shapes of
+Google's Material Icons (Apache License 2.0). `docs/THIRD-PARTY.md` lists
+them, with the tools that build the app.
 
 Nicolas Vaughan is Associate Professor of Literature at the School of Arts
 and Humanities of the Universidad de los Andes, Bogotá, Colombia.
@@ -136,10 +140,40 @@ with Time and Label, and the buttons Add, Remove and Export… (a text file
 like py-slowdown's).
 
 
+4. The release cycle
+--------------------
+
+The releases follow those of my other two Android apps, py-words and
+Wiktionary Reader. `tools/release.py`, taken from Wiktionary Reader's, makes a
+release in one command: it runs the tests, raises the version, writes the
+notes for the stores from the changelogs (`tools/store_notes.py`), commits
+and signs the tag, builds the signed APK from the tag, writes `SHA256SUMS`,
+checks every signature with only the public key, as a user would, and
+publishes on GitHub and Codeberg; then it puts the APK in my own F-Droid
+repository. The APK is signed with a key of its own for Android (RSA, 4096
+bits), kept out of git, and with the OpenPGP key of py-slowdown. The
+F-Droid recipe names the NDK, and the engine is compiled without the paths
+of the machine and without a build id, so that F-Droid's build of a tag can
+match the published APK.
+
+I took care with the licences. I checked which files of Rubber Band are
+really compiled: only its own 62, all with the same notice (GPL 2 or
+later); none of the code by others in its `src/ext/`. The Kotlin standard
+library goes into the APK, and so does LLVM's libc++, linked statically
+into the engine; the shapes of the buttons come from Material Icons. Their
+full texts are in `LICENSES/`, taken as their authors publish them (those of
+LLVM from the notice of the NDK, the Unlicense and MIT-0 from dr_flac), and
+they go into the APK too, where a Licences screen shows them, because the
+GPL and the Apache License ask that the licence travel with the program.
+`docs/THIRD-PARTY.md`, the READMEs, the About box and the notes of each
+release say the same, and a test checks that the list in the app, the texts
+and the documents agree.
+
+
 Testing
 -------
 
-There are 15 tests. Four are programs in C++ that test the
+There are 21 tests. Four are programs in C++ that test the
 engine compiled for the computer, run by CTest: the audio in memory (its
 chunks, reading across them, the peaks of the waveform), the renderer (the
 copy bit for bit at 1×; the length and the pitch of the stretched sound at
@@ -148,11 +182,13 @@ gap; a seek with its ramp; the waiting while it decodes; the count-in),
 the player with an output of test (pause, seek, the end, a slower speed,
 the loop, the count-in, the sleeping of the output) and the decoders (one
 second of A 440 in MP3, FLAC and WAV, its length and its pitch, and a 5.1
-WAV mixed down to stereo). Eleven tests in Kotlin, run on the JVM, check the
+WAV mixed down to stereo). Seventeen tests in Kotlin, run on the JVM, check the
 `.slx` (that one written by py-slowdown is read, that what is written is
 read back, the numbers written as Python writes them, the names of the
 files and how the right one is found, the whole file repeated), the
-bookmarks exported as text, and the format of the times. `tools/test.sh` runs both at once,
+bookmarks exported as text, the format of the times and of the boost
+factors, that the licences in the app, in `LICENSES/` and in the documents
+agree, and how their texts are fitted to the screen. `tools/test.sh` runs both at once,
 each test in a process of its own.
 
 The tests of the engine were also compiled for the phone and run there,
@@ -162,7 +198,8 @@ picker of Android, playing it, changing the speed and the pitch while it
 plays (the sound system counted no underrun), selecting a passage and
 repeating it, and its `.slx`, written when leaving the app.
 
-Without the libraries in `third_party/` and the documentation, Slowdown has
-57 files of its own (code, layouts, texts, build files and tests) with about
-5,150 lines: 1,870 of C++ in the engine, 1,890 of Kotlin in the window, 660
-in the tests.
+Without the libraries in `third_party/`, the texts of `LICENSES/` and the
+documentation, Slowdown has 72 files of its own (code, layouts, texts,
+build files, the store texts, tests and tools) with about 6,300 lines: 1,870
+of C++ in the engine, 2,020 of Kotlin in the window, 730 in the tests and
+680 in the tools of the releases.

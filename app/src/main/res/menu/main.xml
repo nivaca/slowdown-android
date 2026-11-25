@@ -20,5 +20,6 @@
     <item android:id="@+id/skip" android:title="@string/skip_length" />
     <item android:id="@+id/save" android:title="@string/save_slx" />
     <item android:id="@+id/close" android:title="@string/close" />
+    <item android:id="@+id/licenses" android:title="@string/licenses" />
     <item android:id="@+id/about" android:title="@string/about" />
 </menu>

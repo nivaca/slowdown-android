@@ -1,4 +1,4 @@
-# Slowdown 0.1.0: descripción
+# Slowdown 0.1: descripción
 
 ## Análisis
 
@@ -18,7 +18,7 @@ Se prefirió C++ a conservar Python porque PortAudio, la salida de sonido de py-
 
 ## Implementación
 
-Sin las bibliotecas de `third_party/` ni la documentación, el programa tiene 57 archivos propios (código, disposiciones, textos, archivos de compilación y pruebas), con unas 5150 líneas: 1870 de C++ en el motor, 1890 de Kotlin en la ventana y 660 en las pruebas. Se compila con Gradle 9.9, el complemento de Android 9.5, el NDK 29 y CMake 3.31.
+Sin las bibliotecas de `third_party/`, los textos de `LICENSES/` ni la documentación, el programa tiene 72 archivos propios (código, disposiciones, textos, archivos de compilación, los textos de las tiendas, pruebas y herramientas), con unas 6300 líneas: 1870 de C++ en el motor, 2020 de Kotlin en la ventana, 730 en las pruebas y 680 en las herramientas de las versiones. Se compila con Gradle 9.9, el complemento de Android 9.5, el NDK 29 y CMake 3.31.
 
 ### Rubber Band
 
@@ -34,7 +34,7 @@ AAudio pide los cuadros a Player. Tras medio segundo sin sonar, el flujo se paus
 
 ## Validación
 
-Hay quince pruebas. Cuatro programas en C++ prueban el motor compilado para el ordenador: el audio en memoria; Renderer (la copia exacta a 1×, la duración y la altura del sonido estirado a tres velocidades y en las tres calidades, el bucle sin hueco, los saltos, la cuenta previa); Player con una salida de prueba, y los decodificadores, con un segundo de La 440 en MP3, FLAC y WAV y un WAV 5.1. Once pruebas en Kotlin comprueban el `.slx` (entre ellas, que se lee uno escrito por py-slowdown), la exportación de los marcadores y el formato de los tiempos. `tools/test.sh` las corre todas en paralelo, cada una en su proceso.
+Hay veintiuna pruebas. Cuatro programas en C++ prueban el motor compilado para el ordenador: el audio en memoria; Renderer (la copia exacta a 1×, la duración y la altura del sonido estirado a tres velocidades y en las tres calidades, el bucle sin hueco, los saltos, la cuenta previa); Player con una salida de prueba, y los decodificadores, con un segundo de La 440 en MP3, FLAC y WAV y un WAV 5.1. Diecisiete pruebas en Kotlin comprueban el `.slx` (entre ellas, que se lee uno escrito por py-slowdown), la exportación de los marcadores, el formato de los tiempos y de los factores del refuerzo, que las licencias de la aplicación, de `LICENSES/` y de los documentos coincidan, y cómo se ajustan sus textos a la pantalla. `tools/test.sh` las corre todas en paralelo, cada una en su proceso.
 
 Las pruebas del motor se compilaron también para el teléfono y pasan allí. La aplicación se probó en un Moto g55 con Android 16: abrir con el selector de Android, tocar, cambiar la velocidad y la altura mientras suena (el sistema de sonido no contó ningún vacío), seleccionar y repetir, y el `.slx` escrito al salir.
 
@@ -44,13 +44,11 @@ Necesita Android 12 o posterior, en un teléfono ARM de 64 bits. No usa internet
 
 ### Licencias
 
-Slowdown es software libre, bajo la Licencia Pública General de GNU, versión 3 o posterior. Incluye Rubber Band 4.0.0 (GPL, versión 2 o posterior), minimp3 (CC0) y dr_flac y dr_wav (dominio público, o MIT sin atribución).
+Slowdown es software libre, bajo la Licencia Pública General de GNU, versión 3 o posterior. Lleva la biblioteca Rubber Band 4.0.0, de Particular Programs Ltd. (Breakfast Quay), bajo la GPL, versión 2 o posterior (usada aquí bajo la GPL 3); minimp3, de lieff (CC0); dr_flac y dr_wav, de David Reid (Unlicense o MIT sin atribución); la biblioteca estándar de Kotlin (Licencia Apache 2.0); la libc++ de LLVM, enlazada en el motor (Licencia Apache 2.0 con las excepciones de LLVM), y las formas de los Material Icons de Google (Licencia Apache 2.0). De Rubber Band solo se compilan sus 62 archivos propios, todos con el mismo aviso; nada del código de otros que trae en `src/ext/`. Los textos completos están en `LICENSES/`, tal como los publican sus autores, y van también en el APK, donde los muestra la pantalla Licencias, porque la GPL y la Licencia Apache piden que la licencia viaje con el programa; `docs/TERCEROS_es.md` dice para qué sirve cada uno. Una prueba comprueba que la lista de la aplicación, los textos y los documentos coincidan.
 
 ## Ambiente
 
-Fue desarrollado en Fedora 45, con el SDK de Android de línea de órdenes (sin Android Studio), Java 25, Gradle 9.9, el NDK 29 y CMake 3.31, y probado en un Moto g55 5G con Android 16. El código está en `~/Dropbox/dev/Android/slowdown`; todavía no se ha publicado.
-
-Para instalarlo desde el código, con el teléfono conectado y la depuración por USB activada:
+Fue desarrollado en Fedora 45, con el SDK de Android de línea de órdenes (sin Android Studio), Java 25, Gradle 9.9, el NDK 29 y CMake 3.31, y probado en un Moto g55 5G con Android 16. El código está en GitHub (`nivaca/slowdown-android`) y en Codeberg (con el mismo nombre). Cada versión se publica con `tools/release.py`, como las otras dos apps de Android del autor: prueba, etiqueta firmada, APK firmado con la clave de Android de la aplicación y con la de OpenPGP de py-slowdown, `SHA256SUMS`, todas las firmas comprobadas solo con la clave pública, y la versión en las dos forjas y en el repositorio de F-Droid propio (`https://nivaca.codeberg.page/fdroid/repo`). Se instala desde allí, con Obtainium, o desde el código, con el teléfono conectado y la depuración por USB activada:
 
     ./gradlew installDebug
     adb shell am start -n io.github.nivaca.slowdown/.MainActivity

@@ -1,0 +1,16 @@
+<p>Slowdown toca audio más lento o más rápido sin cambiar su altura. Está hecho para la música: para practicar una pieza y aprenderla de oído, oyendo un pasaje una y otra vez a una velocidad que se pueda seguir. Es la versión para Android de py-slowdown, con el mismo motor y los mismos archivos <i>.slx</i>.</p>
+
+<ul>
+<li>Velocidad de 0,25× a 3×, que se cambia mientras suena, sin cambiar la altura, con el motor R3 de la biblioteca Rubber Band. A 1× el archivo suena tal cual, muestra por muestra.</li>
+<li>La altura, más aguda o más grave, en semitonos y cents, para afinar una grabación con un instrumento; los formantes se pueden conservar.</li>
+<li>Repite una selección sin hueco (mantenga un dedo sobre la onda y arrástrelo, o A y B), o el archivo entero; las selecciones se pueden guardar como bucles con un nombre.</li>
+<li>Marcadores, con nombre, dibujados sobre la onda; se pueden exportar como texto.</li>
+<li>La onda, más oscura donde ya sonó; un toque lleva allí, pellizcar acerca.</li>
+<li>Perillas para la velocidad, la altura y el volumen, con un Refuerzo para las grabaciones bajas.</li>
+<li>Lee por sí misma MP3, FLAC, WAV y AIFF, y AAC, Opus, Ogg y el sonido de los videos con los códecs de Android.</li>
+<li>Recuerda cada archivo: dónde se dejó, cómo se tocó, sus marcadores y bucles, en un archivo <i>.slx</i> que py-slowdown también lee.</li>
+<li>Funciona con un teclado o un pedal que mande teclas, y con el botón de los auriculares.</li>
+<li>En inglés y en español.</li>
+</ul>
+
+<p>Sin rastreadores, sin publicidad, sin internet. Software libre, bajo la Licencia Pública General de GNU, versión 3 o posterior. Lleva la biblioteca Rubber Band (GPL-2.0-or-later), minimp3 (CC0-1.0), dr_flac y dr_wav (Unlicense o MIT-0), la biblioteca estándar de Kotlin (Apache-2.0) y la libc++ de LLVM (Apache-2.0 con la excepción de LLVM); sus licencias están en la aplicación, en Licencias.</p>

@@ -1,0 +1,16 @@
+<p>Slowdown plays audio slower or faster without changing its pitch. It is made for music: for practising a piece and learning it by ear, hearing a passage again and again at a speed one can follow. It is the Android version of py-slowdown, with the same engine and the same <i>.slx</i> files.</p>
+
+<ul>
+<li>Speed from 0.25× to 3×, changed while it plays, with the pitch kept, by the R3 engine of the Rubber Band Library. At 1× the file plays as it is, sample for sample.</li>
+<li>The pitch up or down in semitones and cents, to tune a recording to an instrument; the formants can be kept.</li>
+<li>Repeats a selection without a gap (hold a finger on the waveform and drag, or A and B), or the whole file; selections can be kept as loops with a name.</li>
+<li>Bookmarks, with names, drawn on the waveform; they can be exported as text.</li>
+<li>The waveform, darker where it has played; a tap goes there, a pinch zooms.</li>
+<li>Knobs for the speed, the pitch and the volume, with a Boost for quiet recordings.</li>
+<li>Reads MP3, FLAC, WAV and AIFF by itself, and AAC, Opus, Ogg and the sound of videos with Android's codecs.</li>
+<li>Remembers each file: where it was left, how it was played, its bookmarks and loops, in a <i>.slx</i> file that py-slowdown also reads.</li>
+<li>Works with a keyboard or a foot pedal that sends keys, and with the button of headphones.</li>
+<li>English and Spanish.</li>
+</ul>
+
+<p>No trackers, no ads, no Internet. Free software, under the GNU General Public License, version 3 or later. It carries the Rubber Band Library (GPL-2.0-or-later), minimp3 (CC0-1.0), dr_flac and dr_wav (Unlicense or MIT-0), the Kotlin standard library (Apache-2.0) and LLVM's libc++ (Apache-2.0 with the LLVM exception); their licences are in the app, under Licences.</p>

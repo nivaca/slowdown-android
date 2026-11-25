@@ -52,7 +52,11 @@
     <string name="ok">Aceptar</string>
     <string name="cancel">Cancelar</string>
     <string name="about">Acerca de Slowdown</string>
-    <string name="about_text">Slowdown %1$s toca audio más lento o más rápido sin cambiar su altura, para practicar música y aprenderla de oído. Es la versión para Android de py-slowdown.\n\nDe Nicolas Vaughan (nicolasvaughan@proton.me). Licencia: GNU GPL, versión 3 o posterior.\n\nEl estiramiento lo hace la biblioteca Rubber Band (GPL 2 o posterior), de Breakfast Quay.</string>
+    <string name="about_text">Slowdown %1$s toca audio más lento o más rápido sin cambiar su altura, para practicar música y aprenderla de oído. Es la versión para Android de py-slowdown.
+
+De Nicolas Vaughan (nicolasvaughan@proton.me). Licencia: Licencia Pública General de GNU, versión 3 o posterior.
+
+El estiramiento lo hace la biblioteca Rubber Band, © Particular Programs Ltd. (Breakfast Quay), bajo la GPL, versión 2 o posterior. El resto del software que lleva, y los textos de las licencias, están en el menú, en Licencias.</string>
     <string name="stop">Detener y volver al principio</string>
     <string name="speeds">Velocidades</string>
     <string name="volume">Volumen</string>
@@ -73,4 +77,6 @@
     <string name="boosted">(reforzado: el sonido por %1$s)</string>
     <string name="louder">(más alto que la grabación: puede distorsionar)</string>
     <string name="volume_home">un doble toque lo devuelve a 100 %%</string>
+    <string name="licenses">Licencias</string>
+    <string name="licenses_intro">Slowdown es software libre, bajo la Licencia Pública General de GNU, versión 3 o posterior. Lleva el software de abajo; toque uno para leer su licencia.</string>
 </resources>

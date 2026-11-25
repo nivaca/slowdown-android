@@ -53,7 +53,11 @@
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
     <string name="about">About Slowdown</string>
-    <string name="about_text">Slowdown %1$s plays audio slower or faster without changing its pitch, for practising music and learning it by ear. It is the Android version of py-slowdown.\n\nBy Nicolas Vaughan (nicolasvaughan@proton.me). License: GNU GPL, version 3 or later.\n\nThe stretching is done by the Rubber Band Library (GPL 2 or later), by Breakfast Quay.</string>
+    <string name="about_text">Slowdown %1$s plays audio slower or faster without changing its pitch, for practising music and learning it by ear. It is the Android version of py-slowdown.
+
+By Nicolas Vaughan (nicolasvaughan@proton.me). Licence: GNU General Public License, version 3 or later.
+
+The stretching is done by the Rubber Band Library, © Particular Programs Ltd. (Breakfast Quay), under the GPL, version 2 or later. The other software it carries, and the texts of the licences, are in the menu, under Licences.</string>
     <string name="stop">Stop and go back to the start</string>
     <string name="speeds">Speeds</string>
     <string name="volume">Volume</string>
@@ -74,4 +78,6 @@
     <string name="boosted">(boosted: the sound times %1$s)</string>
     <string name="louder">(louder than the recording: it may distort)</string>
     <string name="volume_home">a double tap goes back to 100%%</string>
+    <string name="licenses">Licences</string>
+    <string name="licenses_intro">Slowdown is free software, under the GNU General Public License, version 3 or later. It carries the software below; touch one to read its licence.</string>
 </resources>

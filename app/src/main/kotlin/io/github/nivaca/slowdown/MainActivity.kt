@@ -946,6 +946,7 @@ class MainActivity : Activity(), WaveformView.Listener {
             }
             R.id.save -> save(announce = true)
             R.id.close -> closeFile()
+            R.id.licenses -> showLicenses()
             R.id.about -> AlertDialog.Builder(this)
                 .setTitle(R.string.about)
                 .setMessage(getString(R.string.about_text, version))
@@ -954,6 +955,54 @@ class MainActivity : Activity(), WaveformView.Listener {
             else -> return super.onOptionsItemSelected(item)
         }
         return true
+    }
+
+    // --- las licencias: lo que lleva el APK, y el texto de cada una (de sus assets)
+
+    private fun showLicenses() {
+        val rows = Licenses.components.map { c ->
+            val version = if (c.name == "Slowdown") version else c.version
+            val title = if (version.isEmpty()) c.name else "${c.name} $version"
+            "$title\n${c.license} · ${c.holder}"
+        }.toTypedArray()
+        val header = TextView(this).apply {
+            text = getString(R.string.licenses_intro)
+            setPadding(dp(24), dp(12), dp(24), dp(4))
+        }
+        AlertDialog.Builder(this)
+            .setCustomTitle(LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                addView(TextView(this@MainActivity).apply {
+                    text = getString(R.string.licenses)
+                    setTextAppearance(android.R.style.TextAppearance_DeviceDefault_DialogWindowTitle)
+                    setPadding(dp(24), dp(20), dp(24), 0)
+                })
+                addView(header)
+            })
+            .setItems(rows) { _, which -> showLicense(Licenses.components[which]) }
+            .setPositiveButton(R.string.ok, null)
+            .show()
+    }
+
+    private fun showLicense(component: Component) {
+        val text = component.files.joinToString("\n\n" + "=".repeat(40) + "\n\n") { name ->
+            try {
+                Licenses.reflow(assets.open(name).bufferedReader().use { it.readText() })
+            } catch (e: java.io.IOException) {
+                name
+            }
+        }
+        val body = TextView(this).apply {
+            this.text = "${component.name}\n${component.holder}\n${component.license}\n${component.url}\n\n$text"
+            textSize = 13f
+            setTextIsSelectable(true)
+            setPadding(dp(16), dp(12), dp(16), dp(12))
+        }
+        AlertDialog.Builder(this)
+            .setTitle(component.license)
+            .setView(android.widget.ScrollView(this).apply { addView(body) })
+            .setPositiveButton(R.string.ok, null)
+            .show()
     }
 
     // --- el teclado (también un pedal que manda teclas) y los botones de los auriculares
