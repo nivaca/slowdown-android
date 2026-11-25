@@ -1,0 +1,3 @@
+• In Spanish, the row of the speed and the volume no longer runs off the screen ("Velocidad" was cut and "Refuerzo" broken in two): the knobs and the buttons beside them are a little smaller.
+• The language of the app can be chosen apart from the phone's, in Android's settings of the app (English or Spanish).
+• Screenshots for F-Droid, in English and Spanish.

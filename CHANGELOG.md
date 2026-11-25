@@ -5,7 +5,7 @@ All notable changes to Slowdown, the Android version of
 [GitHub](https://github.com/nivaca/slowdown-android) and
 [Codeberg](https://codeberg.org/nivaca/slowdown-android).
 
-## Unreleased
+## 1.1 — 2026-11-25
 
 - In Spanish, the row of the speed and the volume no longer runs off the
   screen ("Velocidad" was cut and "Refuerzo" broken in two): the knobs and

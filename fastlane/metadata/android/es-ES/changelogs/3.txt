@@ -1,0 +1,3 @@
+• En español, la fila de la velocidad y el volumen ya no se sale de la pantalla («Velocidad» quedaba cortada y «Refuerzo» partido en dos): las perillas y los botones de al lado son un poco más pequeños.
+• El idioma de la aplicación se puede elegir aparte del del teléfono, en los ajustes de Android de la aplicación (inglés o español).
+• Capturas de pantalla para F-Droid, en inglés y en español.

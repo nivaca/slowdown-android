@@ -5,7 +5,7 @@ Los cambios de Slowdown, la versión para Android de
 [GitHub](https://github.com/nivaca/slowdown-android) y
 [Codeberg](https://codeberg.org/nivaca/slowdown-android).
 
-## Sin publicar
+## 1.1 — 2026-11-25
 
 - En español, la fila de la velocidad y el volumen ya no se sale de la
   pantalla («Velocidad» quedaba cortada y «Refuerzo» partido en dos): las

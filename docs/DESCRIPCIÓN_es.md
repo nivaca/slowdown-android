@@ -1,4 +1,4 @@
-# Slowdown 1.0: descripción
+# Slowdown 1.1: descripción
 
 ## Análisis
 
