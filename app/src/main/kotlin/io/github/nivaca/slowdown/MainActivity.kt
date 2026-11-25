@@ -89,11 +89,12 @@ class MainActivity : Activity(), WaveformView.Listener {
         setContentView(R.layout.main)
         prefs = getSharedPreferences("settings", MODE_PRIVATE)
         skip = prefs.getInt("skip", 5)
+        setActionBar(findViewById(R.id.toolbar))
         bind()
-        // De borde a borde: la última fila no queda bajo la barra de navegación
+        // De borde a borde (obligatorio desde Android 15): nada queda bajo la barra de estado ni la de navegación
         findViewById<View>(R.id.root).setOnApplyWindowInsetsListener { view, insets ->
             val bars = insets.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout())
-            view.setPadding(bars.left, 0, bars.right, bars.bottom)
+            view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
             insets
         }
         Engine.setQuality(prefs.getInt("quality", Engine.QUALITY_HIGH))
@@ -122,6 +123,16 @@ class MainActivity : Activity(), WaveformView.Listener {
         Choreographer.getInstance().removeFrameCallback(ticker)
         unregisterReceiver(noisy)
         save()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // Sin un servicio de reproducción, Android congela la aplicación al rato de dejar la pantalla: mejor
+        // pausar ahora que cortar en cualquier parte. (Tocar con la pantalla apagada vendrá con ese servicio.)
+        if (Engine.playing()) {
+            Engine.pause()
+            showPlaying()
+        }
     }
 
     override fun onDestroy() {

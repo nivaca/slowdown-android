@@ -1,5 +1,9 @@
 <resources>
-    <style name="Theme.Slowdown" parent="@android:style/Theme.DeviceDefault.DayNight" />
+    <!-- Sin la barra de acción de la ventana: la barra va en la disposición (main.xml), debajo de la de estado -->
+    <style name="Theme.Slowdown" parent="@android:style/Theme.DeviceDefault.DayNight">
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
 
     <style name="IconButton">
         <item name="android:layout_width">0dp</item>

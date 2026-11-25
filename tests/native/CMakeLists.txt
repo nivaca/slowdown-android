@@ -16,13 +16,18 @@ add_library(rubberband STATIC ${RUBBERBAND}/single/RubberBandSingle.cpp)
 target_include_directories(rubberband PUBLIC ${RUBBERBAND})
 target_compile_definitions(rubberband PRIVATE NDEBUG)
 
-add_library(core STATIC ${ROOT}/app/src/main/cpp/audio.cpp ${ROOT}/app/src/main/cpp/engine.cpp)
+add_library(core STATIC ${ROOT}/app/src/main/cpp/audio.cpp ${ROOT}/app/src/main/cpp/engine.cpp
+            ${ROOT}/app/src/main/cpp/decoder.cpp)
+target_include_directories(core PRIVATE ${ROOT}/third_party/minimp3 ${ROOT}/third_party/dr_libs)
+set_source_files_properties(${ROOT}/app/src/main/cpp/decoder.cpp PROPERTIES COMPILE_OPTIONS
+                            "-Wno-unused-function;-Wno-unused-parameter;-Wno-sign-compare")
 target_include_directories(core PUBLIC ${ROOT}/app/src/main/cpp)
 target_compile_options(core PRIVATE -Wall -Wextra)
 target_link_libraries(core PUBLIC rubberband pthread)
 
 enable_testing()
-foreach(name audio renderer player)
+add_compile_definitions(DATA="${CMAKE_CURRENT_SOURCE_DIR}/data")
+foreach(name audio renderer player decoder)
   add_executable(test_${name} test_${name}.cpp)
   target_link_libraries(test_${name} core)
   add_test(NAME ${name} COMMAND test_${name})

@@ -13,9 +13,11 @@ What it does
 ------------
 
 - Opens audio files and the sound of video files: MP3, M4A/AAC, MP4, FLAC,
-  WAV, Ogg, Opus and whatever else Android decodes. Files with more than two
-  channels are mixed down to stereo. A long file can be played while it is
-  still being read.
+  WAV, AIFF, Ogg, Opus and whatever else Android decodes. MP3, FLAC, WAV and
+  AIFF are decoded by the app itself, a five-minute song in half a second;
+  the rest by the codecs of Android, which are slower (about ten times real
+  time), so their waveform fills in for a few seconds while they already
+  play. Files with more than two channels are mixed down to stereo.
 - Shows the audio as a waveform, with a time ruler. A tap moves the position
   there; dragging scrolls; pinching zooms around the fingers.
 - Play, pause, go to the start or to the end, back and forward by a skip
@@ -44,7 +46,8 @@ What it does
 
 Not yet in this version (they are in py-slowdown): the count-in, the ways of
 hearing (one channel, without the centre, the bass), exporting the audio, and
-playing with the screen off.
+playing with the screen off: for now the screen stays on while it plays, and
+it pauses when one leaves the app.
 
 Building and running
 --------------------
@@ -65,6 +68,7 @@ License
 
 Slowdown is free software, under the GNU General Public License, version 3
 or later (see [LICENSE](LICENSE)). It includes the Rubber Band Library 4.0.0
-(GPL, version 2 or later), in `third_party/`.
+(GPL, version 2 or later), and the decoders minimp3 (CC0) and dr_flac and
+dr_wav (public domain, or MIT No Attribution), in `third_party/`.
 
 Nicolas Vaughan, nicolasvaughan@proton.me

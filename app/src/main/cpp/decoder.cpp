@@ -1,186 +1,308 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "decoder.h"
 
-#include <android/log.h>
-#include <media/NdkMediaCodec.h>
-#include <media/NdkMediaExtractor.h>
-#include <media/NdkMediaFormat.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <algorithm>
+#include <chrono>
 #include <cstring>
 
+#ifdef __ANDROID__
+#include <android/log.h>
 #define LOG(...) __android_log_print(ANDROID_LOG_INFO, "slowdown", __VA_ARGS__)
+#else
+#include <cstdio>
+#define LOG(...) (std::fprintf(stderr, __VA_ARGS__), std::fputc('\n', stderr))
+#endif
+
+#define MINIMP3_IMPLEMENTATION
+#define MINIMP3_FLOAT_OUTPUT
+#include "minimp3_ex.h"
+
+#define DR_FLAC_IMPLEMENTATION
+#define DR_FLAC_NO_STDIO
+#include "dr_flac.h"
+
+#define DR_WAV_IMPLEMENTATION
+#define DR_WAV_NO_STDIO
+#include "dr_wav.h"
 
 namespace slowdown {
 
 namespace {
-
-constexpr int ENCODING_16 = 2, ENCODING_8 = 3, ENCODING_FLOAT = 4, ENCODING_24 = 21, ENCODING_32 = 22;
-constexpr int64_t TIMEOUT_US = 10000;
-
-}  // namespace
-
-Decoder::~Decoder() {
-    cancel_ = true;
-    if (thread_.joinable()) thread_.join();
-    if (codec_) {
-        AMediaCodec_stop(codec_);
-        AMediaCodec_delete(codec_);
-    }
-    if (extractor_) AMediaExtractor_delete(extractor_);
-    if (fd_ >= 0) ::close(fd_);
+constexpr size_t STEP_FRAMES = 8192;  // cuadros por paso de los decodificadores propios
 }
 
-std::unique_ptr<Decoder> Decoder::open(int fd, int64_t offset, int64_t length, std::string& error) {
-    std::unique_ptr<Decoder> d(new Decoder());
-    d->fd_ = ::dup(fd);
-    if (length < 0) {
-        struct stat st{};
-        length = fstat(d->fd_, &st) == 0 ? int64_t(st.st_size) - offset : 0;
+// --- File
+
+size_t File::read(void* buffer, size_t bytes) {
+    int64_t left = std::max<int64_t>(0, length - pos);
+    size_t want = size_t(std::min<int64_t>(int64_t(bytes), left));
+    size_t got = 0;
+    while (got < want) {
+        ssize_t n = ::pread(fd, static_cast<char*>(buffer) + got, want - got, off_t(offset + pos));
+        if (n <= 0) break;
+        got += size_t(n);
+        pos += n;
     }
-    d->extractor_ = AMediaExtractor_new();
-    if (AMediaExtractor_setDataSourceFd(d->extractor_, d->fd_, offset, length) != AMEDIA_OK) {
-        error = "unreadable";
-        return nullptr;
-    }
-    // La primera pista de audio (en un video, su sonido)
-    size_t tracks = AMediaExtractor_getTrackCount(d->extractor_);
-    for (size_t i = 0; i < tracks && !d->codec_; ++i) {
-        AMediaFormat* format = AMediaExtractor_getTrackFormat(d->extractor_, i);
-        const char* mime = nullptr;
-        if (AMediaFormat_getString(format, AMEDIAFORMAT_KEY_MIME, &mime) && std::strncmp(mime, "audio/", 6) == 0) {
-            AMediaExtractor_selectTrack(d->extractor_, i);
-            AMediaFormat_getInt64(format, AMEDIAFORMAT_KEY_DURATION, &d->expected_us_);
-            d->codec_ = AMediaCodec_createDecoderByType(mime);
-            if (d->codec_) {
-                // Muestras en coma flotante, si el códec las da; si no, sale en 16 bits
-                AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_PCM_ENCODING, ENCODING_FLOAT);
-                if (AMediaCodec_configure(d->codec_, format, nullptr, nullptr, 0) != AMEDIA_OK ||
-                    AMediaCodec_start(d->codec_) != AMEDIA_OK) {
-                    AMediaCodec_delete(d->codec_);
-                    d->codec_ = nullptr;
-                    error = std::string("codec: ") + mime;
-                }
-            } else {
-                error = std::string("codec: ") + mime;
-            }
-        }
-        AMediaFormat_delete(format);
-    }
-    if (!d->codec_) {
-        if (error.empty()) error = "no audio";
-        return nullptr;
-    }
-    // Hasta saber qué sale del códec
-    bool more = true;
-    while (!d->audio_ && more) more = d->step(error);
-    if (!d->audio_) {
-        if (error.empty()) error = "no audio";
-        return nullptr;
-    }
-    Decoder* self = d.get();
-    d->thread_ = std::thread([self, more] {
-        std::string failure;
-        bool going = more;
-        while (going && !self->cancel_) going = self->step(failure);
-        if (!failure.empty()) LOG("decoding: %s", failure.c_str());
-        self->audio_->finish(!failure.empty() && !self->cancel_);
-    });
-    return d;
+    return got;
 }
 
-void Decoder::output_format() {
-    AMediaFormat* format = AMediaCodec_getOutputFormat(codec_);
-    int32_t rate = 44100, channels = 2, encoding = ENCODING_16;
-    AMediaFormat_getInt32(format, AMEDIAFORMAT_KEY_SAMPLE_RATE, &rate);
-    AMediaFormat_getInt32(format, AMEDIAFORMAT_KEY_CHANNEL_COUNT, &channels);
-    if (!AMediaFormat_getInt32(format, AMEDIAFORMAT_KEY_PCM_ENCODING, &encoding)) encoding = ENCODING_16;
-    AMediaFormat_delete(format);
-    encoding_ = encoding;
-    in_channels_ = std::max(1, channels);
-    if (!audio_) {
-        int out_channels = std::min(in_channels_, 2);
-        audio_ = std::make_shared<Audio>(rate, out_channels, expected_us_ * rate / 1000000);
-        LOG("decoding: %d Hz, %d channels, encoding %d", rate, channels, encoding);
-    }
-}
-
-bool Decoder::step(std::string& error) {
-    if (!input_done_) {
-        ssize_t index = AMediaCodec_dequeueInputBuffer(codec_, TIMEOUT_US);
-        if (index >= 0) {
-            size_t capacity = 0;
-            uint8_t* buffer = AMediaCodec_getInputBuffer(codec_, size_t(index), &capacity);
-            ssize_t size = AMediaExtractor_readSampleData(extractor_, buffer, capacity);
-            if (size < 0) {
-                AMediaCodec_queueInputBuffer(codec_, size_t(index), 0, 0, 0, AMEDIACODEC_BUFFER_FLAG_END_OF_STREAM);
-                input_done_ = true;
-            } else {
-                int64_t time = AMediaExtractor_getSampleTime(extractor_);
-                AMediaCodec_queueInputBuffer(codec_, size_t(index), 0, size_t(size), uint64_t(std::max<int64_t>(0, time)), 0);
-                AMediaExtractor_advance(extractor_);
-            }
-        }
-    }
-    AMediaCodecBufferInfo info{};
-    ssize_t index = AMediaCodec_dequeueOutputBuffer(codec_, &info, TIMEOUT_US);
-    if (index >= 0) {
-        if (!audio_) output_format();
-        if (info.size > 0) {
-            size_t capacity = 0;
-            uint8_t* buffer = AMediaCodec_getOutputBuffer(codec_, size_t(index), &capacity);
-            if (buffer) deliver(buffer + info.offset, size_t(info.size));
-        }
-        AMediaCodec_releaseOutputBuffer(codec_, size_t(index), false);
-        if (info.flags & AMEDIACODEC_BUFFER_FLAG_END_OF_STREAM) return false;
-    } else if (index == AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED) {
-        output_format();
-    } else if (index != AMEDIACODEC_INFO_TRY_AGAIN_LATER && index != AMEDIACODEC_INFO_OUTPUT_BUFFERS_CHANGED) {
-        error = "codec error " + std::to_string(index);
-        return false;
-    }
+bool File::seek(int64_t to) {
+    if (to < 0 || to > length) return false;
+    pos = to;
     return true;
 }
 
-void Decoder::deliver(const uint8_t* data, size_t size) {
-    const int in = in_channels_;
-    int bytes = encoding_ == ENCODING_FLOAT || encoding_ == ENCODING_32 ? 4
-              : encoding_ == ENCODING_24 ? 3 : encoding_ == ENCODING_8 ? 1 : 2;
-    size_t frames = size / size_t(bytes * in);
-    std::vector<float> samples(frames * size_t(in));
-    for (size_t i = 0; i < frames * size_t(in); ++i) {
-        const uint8_t* p = data + i * size_t(bytes);
-        float v;
-        switch (encoding_) {
-            case ENCODING_FLOAT: std::memcpy(&v, p, 4); break;
-            case ENCODING_32: { int32_t s; std::memcpy(&s, p, 4); v = float(s) / 2147483648.0f; break; }
-            case ENCODING_24: { int32_t s = int32_t(uint32_t(p[0]) << 8 | uint32_t(p[1]) << 16 | uint32_t(p[2]) << 24); v = float(s) / 2147483648.0f; break; }
-            case ENCODING_8: v = (float(p[0]) - 128.0f) / 128.0f; break;
-            default: { int16_t s; std::memcpy(&s, p, 2); v = float(s) / 32768.0f; break; }
-        }
-        samples[i] = v;
-    }
+File::~File() {
+    if (fd >= 0) ::close(fd);
+}
+
+// --- Decoder
+
+void Decoder::start(bool more) {
+    thread_ = std::thread([this, more] {
+        auto t0 = std::chrono::steady_clock::now();
+        std::string failure;
+        bool going = more;
+        while (going && !cancel_) going = step(failure);
+        if (!failure.empty()) LOG("decoding: %s", failure.c_str());
+        double took = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
+        LOG("%s: decoded %.1f s of audio in %.2f s", kind(), double(audio_->decoded()) / audio_->rate, took);
+        audio_->finish(!failure.empty() && !cancel_);
+    });
+}
+
+void Decoder::stop() {
+    cancel_ = true;
+    if (thread_.joinable()) thread_.join();
+}
+
+void Decoder::append(const float* samples, size_t frames, int in) {
     if (in <= 2) {
-        audio_->append(samples.data(), int64_t(frames));
+        audio_->append(samples, int64_t(frames));
         return;
     }
-    // Más de dos canales, en el orden de Android (FL FR FC LFE BL BR SL SR…): una mezcla estéreo, sin el LFE
-    scratch_.resize(frames * 2);
+    // Más de dos canales, en el orden habitual (FL FR FC LFE BL BR SL SR…): una mezcla estéreo, sin el LFE
+    mixed_.resize(frames * 2);
     const float side = 0.7071f;
     for (size_t f = 0; f < frames; ++f) {
-        const float* s = samples.data() + f * size_t(in);
-        float l = s[0], r = s[1];
-        float norm = 1.0f;
-        if (in > 2) { l += side * s[2]; r += side * s[2]; norm += side; }
+        const float* s = samples + f * size_t(in);
+        float l = s[0] + side * s[2], r = s[1] + side * s[2];
+        float norm = 1.0f + side;
         for (int c = 4; c < in; ++c) {
-            if (c % 2 == 0) l += side * s[c]; else r += side * s[c];
+            if (c % 2 == 0) l += side * s[c];
+            else r += side * s[c];
         }
         if (in > 4) norm += side * float((in - 4 + 1) / 2);
-        scratch_[2 * f] = l / norm;
-        scratch_[2 * f + 1] = r / norm;
+        mixed_[2 * f] = l / norm;
+        mixed_[2 * f + 1] = r / norm;
     }
-    audio_->append(scratch_.data(), int64_t(frames));
+    audio_->append(mixed_.data(), int64_t(frames));
+}
+
+namespace {
+
+// --- MP3, con minimp3 (que quita el retraso y el relleno del codificador, como FFmpeg en py-slowdown)
+
+class Mp3Decoder : public Decoder {
+public:
+    File file;
+    mp3dec_io_t io{};
+    mp3dec_ex_t mp3{};
+    bool opened = false;
+    std::vector<float> buffer;
+
+    ~Mp3Decoder() override {
+        stop();
+        if (opened) mp3dec_ex_close(&mp3);
+    }
+    const char* kind() const override { return "mp3"; }
+
+    bool open(std::string& error) {
+        io.read = [](void* buf, size_t size, void* self) { return static_cast<File*>(self)->read(buf, size); };
+        io.read_data = &file;
+        io.seek = [](uint64_t position, void* self) { return static_cast<File*>(self)->seek(int64_t(position)) ? 0 : -1; };
+        io.seek_data = &file;
+        // MP3D_SEEK_TO_SAMPLE: recorre antes las cabeceras de los cuadros, y así sabe cuántas muestras son
+        if (mp3dec_ex_open_cb(&mp3, &io, MP3D_SEEK_TO_SAMPLE) != 0 || mp3.info.hz <= 0 || mp3.info.channels <= 0) {
+            error = "mp3";
+            return false;
+        }
+        opened = true;
+        int channels = mp3.info.channels;
+        audio_ = std::make_shared<Audio>(mp3.info.hz, std::min(channels, 2), int64_t(mp3.samples / uint64_t(channels)));
+        return true;
+    }
+
+    bool step(std::string& error) override {
+        int channels = mp3.info.channels;
+        buffer.resize(STEP_FRAMES * size_t(channels));
+        size_t got = mp3dec_ex_read(&mp3, buffer.data(), buffer.size());
+        if (got == 0) {
+            if (mp3.last_error) error = "mp3 error " + std::to_string(mp3.last_error);
+            return false;
+        }
+        append(buffer.data(), got / size_t(channels), channels);
+        return true;
+    }
+};
+
+// --- FLAC, con dr_flac
+
+class FlacDecoder : public Decoder {
+public:
+    File file;
+    drflac* flac = nullptr;
+    std::vector<float> buffer;
+
+    ~FlacDecoder() override {
+        stop();
+        if (flac) drflac_close(flac);
+    }
+    const char* kind() const override { return "flac"; }
+
+    static size_t on_read(void* self, void* out, size_t bytes) { return static_cast<File*>(self)->read(out, bytes); }
+    static drflac_bool32 on_seek(void* self, int offset, drflac_seek_origin origin) {
+        File* f = static_cast<File*>(self);
+        int64_t base = origin == DRFLAC_SEEK_SET ? 0 : origin == DRFLAC_SEEK_CUR ? f->pos : f->length;
+        return f->seek(base + offset);
+    }
+    static drflac_bool32 on_tell(void* self, drflac_int64* cursor) {
+        *cursor = static_cast<File*>(self)->pos;
+        return DRFLAC_TRUE;
+    }
+
+    bool open(std::string& error) {
+        flac = drflac_open(on_read, on_seek, on_tell, &file, nullptr);
+        if (!flac || flac->channels == 0 || flac->sampleRate == 0) {
+            error = "flac";
+            return false;
+        }
+        audio_ = std::make_shared<Audio>(int(flac->sampleRate), std::min<int>(flac->channels, 2),
+                                         int64_t(flac->totalPCMFrameCount));
+        return true;
+    }
+
+    bool step(std::string&) override {
+        buffer.resize(STEP_FRAMES * flac->channels);
+        drflac_uint64 got = drflac_read_pcm_frames_f32(flac, STEP_FRAMES, buffer.data());
+        if (got == 0) return false;
+        append(buffer.data(), size_t(got), flac->channels);
+        return true;
+    }
+};
+
+// --- WAV (también RF64 y AIFF), con dr_wav
+
+class WavDecoder : public Decoder {
+public:
+    File file;
+    drwav wav{};
+    bool opened = false;
+    std::vector<float> buffer;
+
+    ~WavDecoder() override {
+        stop();
+        if (opened) drwav_uninit(&wav);
+    }
+    const char* kind() const override { return "wav"; }
+
+    static size_t on_read(void* self, void* out, size_t bytes) { return static_cast<File*>(self)->read(out, bytes); }
+    static drwav_bool32 on_seek(void* self, int offset, drwav_seek_origin origin) {
+        File* f = static_cast<File*>(self);
+        int64_t base = origin == DRWAV_SEEK_SET ? 0 : origin == DRWAV_SEEK_CUR ? f->pos : f->length;
+        return f->seek(base + offset);
+    }
+    static drwav_bool32 on_tell(void* self, drwav_int64* cursor) {
+        *cursor = static_cast<File*>(self)->pos;
+        return DRWAV_TRUE;
+    }
+
+    bool open(std::string& error) {
+        opened = drwav_init(&wav, on_read, on_seek, on_tell, &file, nullptr);
+        if (!opened || wav.channels == 0 || wav.sampleRate == 0) {
+            error = "wav";
+            return false;
+        }
+        audio_ = std::make_shared<Audio>(int(wav.sampleRate), std::min<int>(wav.channels, 2),
+                                         int64_t(wav.totalPCMFrameCount));
+        return true;
+    }
+
+    bool step(std::string&) override {
+        buffer.resize(STEP_FRAMES * wav.channels);
+        drwav_uint64 got = drwav_read_pcm_frames_f32(&wav, STEP_FRAMES, buffer.data());
+        if (got == 0) return false;
+        append(buffer.data(), size_t(got), wav.channels);
+        return true;
+    }
+};
+
+enum class Kind { OTHER, MP3, FLAC, WAV };
+
+// Qué es, por sus primeros bytes (no por el nombre, que en Android a veces no se sabe)
+Kind sniff(File& file) {
+    uint8_t head[12] = {};
+    file.seek(0);
+    size_t n = file.read(head, sizeof head);
+    file.seek(0);
+    if (n >= 4 && std::memcmp(head, "fLaC", 4) == 0) return Kind::FLAC;
+    if (n >= 12 && (std::memcmp(head, "RIFF", 4) == 0 || std::memcmp(head, "RF64", 4) == 0 ||
+                    std::memcmp(head, "BW64", 4) == 0) && std::memcmp(head + 8, "WAVE", 4) == 0)
+        return Kind::WAV;
+    if (n >= 12 && std::memcmp(head, "FORM", 4) == 0 &&
+        (std::memcmp(head + 8, "AIFF", 4) == 0 || std::memcmp(head + 8, "AIFC", 4) == 0))
+        return Kind::WAV;
+    // MP3: una etiqueta ID3 delante, o la marca de un cuadro MPEG de capa I a III (no un AAC en ADTS, capa 0)
+    if (n >= 3 && std::memcmp(head, "ID3", 3) == 0) return Kind::MP3;
+    if (n >= 2 && head[0] == 0xFF && (head[1] & 0xE0) == 0xE0 && (head[1] & 0x06) != 0) return Kind::MP3;
+    return Kind::OTHER;
+}
+
+template <class D>
+std::unique_ptr<Decoder> start_own(int fd, int64_t offset, int64_t length, std::string& error) {
+    auto d = std::make_unique<D>();
+    d->file.fd = ::dup(fd);
+    d->file.offset = offset;
+    d->file.length = length;
+    if (!d->open(error)) return nullptr;
+    d->start(true);
+    return d;
+}
+
+}  // namespace
+
+std::unique_ptr<Decoder> Decoder::open(int fd, int64_t offset, int64_t length, std::string& error) {
+    if (length < 0) {
+        struct stat st{};
+        length = fstat(fd, &st) == 0 ? int64_t(st.st_size) - offset : 0;
+    }
+    Kind kind;
+    {
+        File probe;
+        probe.fd = ::dup(fd);
+        probe.offset = offset;
+        probe.length = length;
+        kind = sniff(probe);
+    }
+    std::unique_ptr<Decoder> d;
+    std::string own_error;
+    switch (kind) {
+        case Kind::MP3: d = start_own<Mp3Decoder>(fd, offset, length, own_error); break;
+        case Kind::FLAC: d = start_own<FlacDecoder>(fd, offset, length, own_error); break;
+        case Kind::WAV: d = start_own<WavDecoder>(fd, offset, length, own_error); break;
+        case Kind::OTHER: break;
+    }
+    if (d) return d;
+    if (!own_error.empty()) LOG("own decoder (%s) failed: trying the codecs of Android", own_error.c_str());
+#ifdef __ANDROID__
+    return open_codec(fd, offset, length, error);
+#else
+    error = own_error.empty() ? "unknown format" : own_error;
+    return nullptr;
+#endif
 }
 
 }  // namespace slowdown
