@@ -6,7 +6,7 @@ Android phone. It is for practising music and learning it by ear. Nicolas
 Vaughan made it in November 2026, as the Android version of py-slowdown,
 his program for the desktop (Python and Qt): the engine of py-slowdown was
 translated into C++, and the window was written again for a phone. Here I
-explain how it was made, in two stages.
+explain how it was made, in three stages.
 
 Slowdown is free software, under the GNU General Public License, version 3
 or later. It includes the Rubber Band Library 4.0.0, by Breakfast Quay
@@ -104,10 +104,40 @@ there is such a service, it pauses when it leaves the screen, and the
 screen stays on while it plays.
 
 
+3. The window of the desktop
+----------------------------
+
+The first window was made in the way of Android, and it did not look like
+py-slowdown; so it was drawn again on the model of the latest version of
+py-slowdown (1.3). The colours of the waveform are those of its
+`waveform.py`, light or dark as the phone is set: the waveform in blue,
+darker where it has played, drawn at the scale of the loudest peak; the
+position in red; the bookmarks as dashed orange lines with their names in
+small flags under the ruler, and the first beat in green; the selection in
+green, with a band also in the ruler. The ruler has minor ticks, as there.
+
+Under the waveform come, as on the desktop, the buttons of the player (now
+with Stop, and with Repeat, which with no selection repeats the whole file,
+as in py-slowdown 1.3, and keeps it in the `.slx` as `<repeat
+whole="true"/>`), the time, and the knobs. The knob is a copy of that of
+py-slowdown: a short pointer at the edge of its face, the value in the
+middle, ticks around it, and an uneven scale around the value straight up
+(the speed: 25 to 100% on the left, 100 to 300% on the right). On the
+desktop the pointer follows the mouse; under a finger a small knob is
+hidden, so here it turns by dragging up or to the right, and a double tap
+takes it home. There are knobs for the speed (with 1× and the menu
+Speeds), the semitones and the cents (with ø), and the volume, with Boost,
+as in py-slowdown: the square of the knob's value, times 1.5 with Boost,
+and the knob in red where the sound passes the recording's. The bookmarks
+and the loops went into a panel like the desktop's dock: two tabs, a table
+with Time and Label, and the buttons Add, Remove and Export… (a text file
+like py-slowdown's).
+
+
 Testing
 -------
 
-There are 13 tests. Four are programs in C++ that test the
+There are 15 tests. Four are programs in C++ that test the
 engine compiled for the computer, run by CTest: the audio in memory (its
 chunks, reading across them, the peaks of the waveform), the renderer (the
 copy bit for bit at 1×; the length and the pitch of the stretched sound at
@@ -116,10 +146,11 @@ gap; a seek with its ramp; the waiting while it decodes; the count-in),
 the player with an output of test (pause, seek, the end, a slower speed,
 the loop, the count-in, the sleeping of the output) and the decoders (one
 second of A 440 in MP3, FLAC and WAV, its length and its pitch, and a 5.1
-WAV mixed down to stereo). Nine tests in Kotlin, run on the JVM, check the
-`.slx`: that one written by py-slowdown is read, that what is written is
+WAV mixed down to stereo). Eleven tests in Kotlin, run on the JVM, check the
+`.slx` (that one written by py-slowdown is read, that what is written is
 read back, the numbers written as Python writes them, the names of the
-files and how the right one is found. `tools/test.sh` runs both at once,
+files and how the right one is found, the whole file repeated), the
+bookmarks exported as text, and the format of the times. `tools/test.sh` runs both at once,
 each test in a process of its own.
 
 The tests of the engine were also compiled for the phone and run there,
@@ -130,6 +161,6 @@ plays (the sound system counted no underrun), selecting a passage and
 repeating it, and its `.slx`, written when leaving the app.
 
 Without the libraries in `third_party/` and the documentation, Slowdown has
-55 files of its own (code, layouts, texts, build files and tests) with about
-4,600 lines: 1,860 of C++ in
-the engine, 1,430 of Kotlin in the window, 650 in the tests.
+57 files of its own (code, layouts, texts, build files and tests) with about
+5,150 lines: 1,870 of C++ in the engine, 1,890 of Kotlin in the window, 660
+in the tests.

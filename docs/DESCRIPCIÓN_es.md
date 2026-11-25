@@ -12,13 +12,13 @@ Quedan para después la cuenta previa, las maneras de oír (un canal, sin el cen
 
 El motor está en C++ y la ventana en Kotlin. El motor tiene cuatro partes. `audio.cpp` guarda el audio decodificado en memoria, en trozos de 65 536 cuadros que no se mueven una vez escritos, con el mínimo y el máximo de cada 256 cuadros para la onda. `engine.cpp` es el motor de py-slowdown (`engine.py`) traducido casi línea por línea: Renderer hace el audio de salida por bloques, y Player lo lleva a la salida con un hilo productor y una cola de 0,15 segundos. `output.cpp` es la salida de AAudio. `decoder.cpp` y `codec.cpp` decodifican el archivo.
 
-La ventana (`MainActivity.kt`) une los mandos con el motor, por medio de `Engine.kt` y de una sola biblioteca nativa. `WaveformView.kt` dibuja la onda, la regla, la selección y los marcadores, y recibe los gestos. `Sidecar.kt` lee y escribe el `.slx`.
+La ventana (`MainActivity.kt`) une los mandos con el motor, por medio de `Engine.kt` y de una sola biblioteca nativa, y está ordenada como la de py-slowdown 1.3: la onda; los botones de la reproducción (con Detener y Repetir, que sin selección repite el archivo entero) y el tiempo; las perillas de la velocidad, el volumen (con el Refuerzo) y la altura, y el panel de los marcadores y los bucles, con dos pestañas, una tabla y los botones Añadir, Quitar y Exportar…. `WaveformView.kt` dibuja la onda, la regla, la selección y los marcadores con los colores de py-slowdown (`Palette.kt`), claros u oscuros según el teléfono. `Knob.kt` es la perilla de py-slowdown; con el dedo se gira arrastrando hacia arriba o a la derecha, porque una perilla pequeña queda bajo el dedo, y vuelve a su valor con un doble toque. `Sidecar.kt` lee y escribe el `.slx`.
 
 Se prefirió C++ a conservar Python porque PortAudio, la salida de sonido de py-slowdown, no existe en Android, y porque un hilo de Python que alimenta la salida cada pocos milisegundos es un riesgo en un teléfono. La ventana usa los controles de Android, sin Jetpack Compose ni otras bibliotecas: el programa no depende de nada fuera de Android y de lo que trae en `third_party/`.
 
 ## Implementación
 
-Sin las bibliotecas de `third_party/` ni la documentación, el programa tiene 55 archivos propios (código, disposiciones, textos, archivos de compilación y pruebas), con unas 4600 líneas: 1860 de C++ en el motor, 1430 de Kotlin en la ventana y 650 en las pruebas. Se compila con Gradle 9.9, el complemento de Android 9.5, el NDK 29 y CMake 3.31.
+Sin las bibliotecas de `third_party/` ni la documentación, el programa tiene 57 archivos propios (código, disposiciones, textos, archivos de compilación y pruebas), con unas 5150 líneas: 1870 de C++ en el motor, 1890 de Kotlin en la ventana y 660 en las pruebas. Se compila con Gradle 9.9, el complemento de Android 9.5, el NDK 29 y CMake 3.31.
 
 ### Rubber Band
 
@@ -34,7 +34,7 @@ AAudio pide los cuadros a Player. Tras medio segundo sin sonar, el flujo se paus
 
 ## Validación
 
-Hay trece pruebas. Cuatro programas en C++ prueban el motor compilado para el ordenador: el audio en memoria; Renderer (la copia exacta a 1×, la duración y la altura del sonido estirado a tres velocidades y en las tres calidades, el bucle sin hueco, los saltos, la cuenta previa); Player con una salida de prueba, y los decodificadores, con un segundo de La 440 en MP3, FLAC y WAV y un WAV 5.1. Nueve pruebas en Kotlin comprueban el `.slx`, entre ellas que se lee uno escrito por py-slowdown. `tools/test.sh` las corre todas en paralelo, cada una en su proceso.
+Hay quince pruebas. Cuatro programas en C++ prueban el motor compilado para el ordenador: el audio en memoria; Renderer (la copia exacta a 1×, la duración y la altura del sonido estirado a tres velocidades y en las tres calidades, el bucle sin hueco, los saltos, la cuenta previa); Player con una salida de prueba, y los decodificadores, con un segundo de La 440 en MP3, FLAC y WAV y un WAV 5.1. Once pruebas en Kotlin comprueban el `.slx` (entre ellas, que se lee uno escrito por py-slowdown), la exportación de los marcadores y el formato de los tiempos. `tools/test.sh` las corre todas en paralelo, cada una en su proceso.
 
 Las pruebas del motor se compilaron también para el teléfono y pasan allí. La aplicación se probó en un Moto g55 con Android 16: abrir con el selector de Android, tocar, cambiar la velocidad y la altura mientras suena (el sistema de sonido no contó ningún vacío), seleccionar y repetir, y el `.slx` escrito al salir.
 
