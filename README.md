@@ -171,10 +171,13 @@ The description, the icon and the notes of each version for F-Droid are in
 the folder `app`, with the NDK named there, and finds new versions by their
 tags.
 
-The build is meant to be reproducible: the engine is compiled without the
-paths of the machine that builds it and without a build id, so that F-Droid,
-building the same tag, gets the same APK apart from the signature, and can
-publish the signed APK of the release. The release APK must be built from
+The build is reproducible: the engine is compiled without the paths of the
+machine that builds it and without a build id, so that F-Droid, building the
+same tag, gets the same APK apart from the signature, and can publish the
+signed APK of the release. `tools/check_reproducible.py [VERSION]` checks it
+as F-Droid would: it clones the tag into another folder, builds it without
+the key, and compares it, entry by entry, with the APK of the release on
+GitHub. Version 1.1 passes. The release APK must be built from
 the tagged commit, because the APK records the commit it was built from.
 
 License

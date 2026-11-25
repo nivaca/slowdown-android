@@ -173,10 +173,13 @@ compilación es `fdroid/io.github.nivaca.slowdown.yml`: compila la etiqueta
 `vVERSIÓN` desde la carpeta `app`, con el NDK que allí se nombra, y encuentra
 las versiones nuevas por sus etiquetas.
 
-La compilación está pensada para ser reproducible: el motor se compila sin
-las rutas de la máquina que lo compila y sin «build id», para que F-Droid,
-al compilar la misma etiqueta, obtenga el mismo APK salvo la firma, y pueda
-publicar el APK firmado de la versión. El APK de la versión debe compilarse
+La compilación es reproducible: el motor se compila sin las rutas de la
+máquina que lo compila y sin «build id», para que F-Droid, al compilar la
+misma etiqueta, obtenga el mismo APK salvo la firma, y pueda publicar el APK
+firmado de la versión. `tools/check_reproducible.py [VERSIÓN]` lo comprueba
+como lo haría F-Droid: clona la etiqueta en otra carpeta, la compila sin la
+clave y la compara, entrada por entrada, con el APK de la versión en GitHub.
+La versión 1.1 lo pasa. El APK de la versión debe compilarse
 desde la confirmación etiquetada, porque el APK guarda la confirmación de la
 que sale.
 
