@@ -28,6 +28,11 @@ Los cambios de Slowdown, la versión para Android de
   donde sea que empiece a sonar, e Ir al principio va a ese pulso. El pulso
   que suena se ve grande sobre la onda. Cada archivo guarda su tempo en su
   `.slx`.
+- Las maneras de oír de py-slowdown (menú > Oír), para sacar una parte de
+  una mezcla: un canal, los dos en uno (mono), sin el centro (donde suelen
+  estar la voz y el solo), solo los graves o todo menos los graves. Los
+  filtros son los mismos, de fase lineal, a 250 Hz; cada archivo guarda su
+  manera en su `.slx`.
 
 ## 1.1 — 2026-11-25
 

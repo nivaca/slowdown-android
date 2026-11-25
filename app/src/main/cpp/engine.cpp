@@ -40,7 +40,7 @@ RubberBandStretcher::Options options(int quality) {
     }
 }
 
-enum Kind { SEEK, SPEED, LOOP, PITCH, FORMANTS, QUALITY };
+enum Kind { SEEK, SPEED, LOOP, PITCH, FORMANTS, QUALITY, HEARING };
 
 }  // namespace
 
@@ -364,6 +364,8 @@ bool Player::load(std::shared_ptr<Audio> audio) {
     renderer_->set_pitch(pitch_);
     renderer_->set_formants(formants_);
     renderer_->set_quality(quality_);
+    hearing_ = std::make_unique<Hearing>(audio->rate);
+    hearing_->set(hearing_channels_, hearing_filter_);
     {
         std::lock_guard<std::mutex> guard(lock_);
         loop_.reset();
@@ -522,6 +524,12 @@ void Player::set_formants(bool preserved) {
     request(FORMANTS, preserved ? 1 : 0);
 }
 
+void Player::set_hearing(int channels, int filter) {
+    hearing_channels_ = channels;
+    hearing_filter_ = filter;
+    request(HEARING, channels, filter);
+}
+
 void Player::set_quality(int quality) {
     quality_ = (quality >= QUALITY_HIGH && quality <= QUALITY_R2) ? quality : QUALITY_HIGH;
     request(QUALITY, quality_);
@@ -603,10 +611,15 @@ void Player::produce() {
                 case PITCH: renderer.set_pitch(r.a); break;
                 case FORMANTS: renderer.set_formants(r.a != 0); break;
                 case QUALITY: renderer.set_quality(int(r.a)); break;
+                case HEARING: if (hearing_) hearing_->set(int(r.a), int(r.b)); break;
             }
         }
         bool seam = false;
         std::optional<Block> block = renderer.render(BLOCK, seam);
+        if (block && block->size() && hearing_) {
+            if (seam) hearing_->reset();  // (lo de antes del corte no se mezcla con lo que sigue)
+            hearing_->process(block->frames, block->channels);
+        }
         std::unique_lock<std::mutex> guard(lock_);
         bool seek_pending = std::any_of(requests_.begin(), requests_.end(), [](const Request& r) { return r.kind == SEEK; });
         if (seek_pending) continue;  // un salto llegó mientras se hacía este bloque: no se oye

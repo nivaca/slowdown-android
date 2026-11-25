@@ -462,6 +462,7 @@ class MainActivity : Activity(), WaveformView.Listener {
         waveform.duration = 0.0
         waveform.duration = Engine.duration()
         Engine.setFormants(session.formants)
+        applyHearing()
         session.speed = Engine.clampSpeed(session.speed)
         Engine.setSpeed(session.speed)
         session.pitch = session.pitch.coerceIn(-Engine.MAX_PITCH, Engine.MAX_PITCH)
@@ -699,6 +700,14 @@ class MainActivity : Activity(), WaveformView.Listener {
             }
         }
         showRepeat()
+    }
+
+    // --- cómo se oye: los nombres son los del .slx de py-slowdown
+
+    private fun applyHearing() {
+        val channels = listOf("both", "left", "right", "mono", "no_centre").indexOf(session.channels).coerceAtLeast(0)
+        val filter = listOf("none", "bass", "no_bass").indexOf(session.filter).coerceAtLeast(0)
+        Engine.setHearing(channels, filter)
     }
 
     // --- la cuenta previa
@@ -1061,6 +1070,10 @@ class MainActivity : Activity(), WaveformView.Listener {
             else -> R.id.quality_high
         }).isChecked = true
         for (id in listOf(R.id.save, R.id.close, R.id.export_slx, R.id.import_slx)) menu.findItem(id).isEnabled = loaded
+        // Cómo se oye: los canales (no con un archivo mono) y el filtro
+        menu.findItem(HEAR_CHANNELS.entries.firstOrNull { it.value == session.channels }?.key ?: R.id.hear_both).isChecked = true
+        menu.findItem(HEAR_FILTERS.entries.firstOrNull { it.value == session.filter }?.key ?: R.id.hear_none).isChecked = true
+        menu.setGroupEnabled(R.id.hear_channels, !loaded || Engine.channels() == 2)
         // El refuerzo: ×1,2 … ×3, el de ahora marcado
         val boosts = menu.findItem(R.id.boost_factor).subMenu ?: return
         if (boosts.size() == 0) {
@@ -1106,6 +1119,16 @@ class MainActivity : Activity(), WaveformView.Listener {
             }
             R.id.save -> save(announce = true)
             R.id.close -> closeFile()
+            in HEAR_CHANNELS.keys -> {
+                session.channels = HEAR_CHANNELS.getValue(item.itemId)
+                applyHearing()
+                updateMenu()
+            }
+            in HEAR_FILTERS.keys -> {
+                session.filter = HEAR_FILTERS.getValue(item.itemId)
+                applyHearing()
+                updateMenu()
+            }
             R.id.licenses -> showLicenses()
             R.id.export_slx -> exportSlx()
             R.id.import_slx -> importSlx()
@@ -1326,6 +1349,9 @@ class MainActivity : Activity(), WaveformView.Listener {
         const val CENT_TICK = 5
         val SPEED_TICKS = listOf(25, 50, 75, 100, 150, 200, 250, 300)  // alrededor de la perilla de la velocidad
         val VOLUME_TICKS = listOf(0, 25, 50, 75, 100)
+        private val HEAR_CHANNELS = mapOf(R.id.hear_both to "both", R.id.hear_left to "left",
+            R.id.hear_right to "right", R.id.hear_mono to "mono", R.id.hear_no_centre to "no_centre")
+        private val HEAR_FILTERS = mapOf(R.id.hear_none to "none", R.id.hear_bass to "bass", R.id.hear_no_bass to "no_bass")
         val SPEED_PRESETS = listOf(50, 60, 70, 75, 80, 90, 100, 110, 125, 150)  // las de py-slowdown
 
         /** The bookmarks as plain text, one per line: time, a tab, the label (as py-slowdown exports them). */

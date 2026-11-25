@@ -2,6 +2,22 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:id="@+id/open" android:icon="@drawable/ic_open" android:title="@string/open"
         android:showAsAction="always" />
+    <item android:id="@+id/hear" android:title="@string/hear">
+        <menu>
+            <group android:id="@+id/hear_channels" android:checkableBehavior="single">
+                <item android:id="@+id/hear_both" android:title="@string/hear_both" />
+                <item android:id="@+id/hear_left" android:title="@string/hear_left" />
+                <item android:id="@+id/hear_right" android:title="@string/hear_right" />
+                <item android:id="@+id/hear_mono" android:title="@string/hear_mono" />
+                <item android:id="@+id/hear_no_centre" android:title="@string/hear_no_centre" />
+            </group>
+            <group android:id="@+id/hear_filters" android:checkableBehavior="single">
+                <item android:id="@+id/hear_none" android:title="@string/hear_none" />
+                <item android:id="@+id/hear_bass" android:title="@string/hear_bass" />
+                <item android:id="@+id/hear_no_bass" android:title="@string/hear_no_bass" />
+            </group>
+        </menu>
+    </item>
     <item android:id="@+id/formants" android:checkable="true" android:title="@string/keep_formants" />
     <item android:id="@+id/quality" android:title="@string/quality">
         <menu>

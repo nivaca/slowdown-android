@@ -47,6 +47,10 @@ object Engine {
     external fun setQuality(quality: Int)
     external fun setVolume(volume: Double)
 
+    /** How the sound is heard: CHANNELS 0 both, 1 left, 2 right, 3 mono, 4 without the centre; FILTER 0 none,
+     * 1 only the bass, 2 without the bass. */
+    external fun setHearing(channels: Int, filter: Int)
+
     /** Repeat from START to END seconds, without a gap; START < 0: no longer. */
     external fun setLoop(start: Double, end: Double)
     external fun looping(): Boolean

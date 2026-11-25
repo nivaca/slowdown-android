@@ -28,6 +28,11 @@ All notable changes to Slowdown, the Android version of
   playing starts, and Go to the start goes to that beat. The beat that
   sounds is shown large on the waveform. Each file keeps its tempo in its
   `.slx`.
+- The ways of hearing of py-slowdown (menu > Hear), to pick out one part of
+  a mix: one channel, both in one (mono), without the centre (where the
+  voice and the solo usually are), only the bass, or everything but the
+  bass. The filters are the same linear-phase ones, at 250 Hz; each file
+  keeps its way in its `.slx`.
 
 ## 1.1 — 2026-11-25
 

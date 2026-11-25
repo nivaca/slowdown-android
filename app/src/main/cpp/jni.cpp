@@ -72,6 +72,7 @@ FN(void, setSpeed)(JNIEnv*, jobject, jdouble speed) { player()->set_speed(speed)
 FN(void, setPitch)(JNIEnv*, jobject, jdouble semitones) { player()->set_pitch(semitones); }
 FN(void, setFormants)(JNIEnv*, jobject, jboolean on) { player()->set_formants(on); }
 FN(void, setQuality)(JNIEnv*, jobject, jint quality) { player()->set_quality(quality); }
+FN(void, setHearing)(JNIEnv*, jobject, jint channels, jint filter) { player()->set_hearing(channels, filter); }
 FN(void, setVolume)(JNIEnv*, jobject, jdouble volume) { player()->set_volume(volume); }
 
 FN(void, setLoop)(JNIEnv*, jobject, jdouble start, jdouble end) {

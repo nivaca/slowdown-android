@@ -95,8 +95,12 @@ Qué hace
   el primer pulso de la grabación marcado (Mayús+C), la grabación entra en
   el pulso más cercano donde sea que empiece a sonar.
 
-Todavía no están en esta versión (sí en py-slowdown): las maneras de oír (un
-canal, sin el centro, los graves) y la exportación del audio.
+- Oye una parte de la mezcla (menú > Oír): un canal, los dos en uno, la
+  mezcla sin su centro (donde suelen estar la voz y el solo), solo los
+  graves o todo menos los graves.
+
+Todavía no está en esta versión (sí en py-slowdown): la exportación del
+audio.
 
 Compilación
 -----------

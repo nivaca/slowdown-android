@@ -102,4 +102,13 @@ The stretching is done by the Rubber Band Library, © Particular Programs Ltd. (
     <string name="recording_offset">Recording offset (s):</string>
     <string name="count_summary">At the speed now (%1$s×): %2$d clicks at %3$d BPM, then the recording.</string>
     <string name="first_beat_grid">The recording comes in on the beats of its first beat (%1$s) at this tempo.</string>
+    <string name="hear">Hear</string>
+    <string name="hear_both">Both channels</string>
+    <string name="hear_left">Left channel only</string>
+    <string name="hear_right">Right channel only</string>
+    <string name="hear_mono">Mono (both channels in one)</string>
+    <string name="hear_no_centre">Without the centre (what is in the middle of the mix)</string>
+    <string name="hear_none">No filter</string>
+    <string name="hear_bass">Bass only (below 250 Hz)</string>
+    <string name="hear_no_bass">Without the bass (above 250 Hz)</string>
 </resources>

@@ -92,8 +92,11 @@ What it does
   beat (T). With the recording's first beat marked (Shift+C), the recording
   comes in on the nearest beat wherever playing starts.
 
-Not yet in this version (they are in py-slowdown): the ways of hearing (one
-channel, without the centre, the bass) and exporting the audio.
+- Hears one part of the mix (menu > Hear): one channel, the two in one, the
+  mix without its centre (where the voice and the solo usually are), only
+  the bass, or everything but the bass.
+
+Not yet in this version (it is in py-slowdown): exporting the audio.
 
 Building
 --------

@@ -30,6 +30,7 @@
 #include <vector>
 
 #include "audio.h"
+#include "hearing.h"
 
 namespace RubberBand { class RubberBandStretcher; }
 
@@ -151,6 +152,7 @@ public:
     void set_formants(bool preserved);
     void set_quality(int quality);
     void set_volume(double volume) { volume_.store(float(volume)); }
+    void set_hearing(int channels, int filter);  // cómo se oye (hearing.h)
     double speed() const { return speed_; }
     double pitch() const { return pitch_; }
 
@@ -173,6 +175,8 @@ private:
     double speed_ = 1.0, pitch_ = 0.0;
     bool formants_ = false;
     int quality_ = QUALITY_HIGH;
+    int hearing_channels_ = BOTH, hearing_filter_ = NONE;
+    std::unique_ptr<Hearing> hearing_;
 
     mutable std::mutex lock_;
     std::condition_variable wake_;
