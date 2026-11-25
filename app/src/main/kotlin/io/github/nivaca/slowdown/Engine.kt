@@ -28,6 +28,7 @@ object Engine {
     external fun done(): Boolean
     external fun failed(): Boolean
     external fun duration(): Double
+    external fun loudest(): Float
 
     /** The minimum and maximum of OUT.size / 2 columns of FPP frames each, from the frame START. */
     external fun peaks(start: Double, fpp: Double, out: FloatArray)

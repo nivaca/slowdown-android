@@ -145,6 +145,9 @@ object Sidecar {
                 session.repeat = flag(it, "repeat")
             }
         }
+        if (session.selection == null && flag(child(root, "repeat"), "whole")) {
+            session.repeat = true  // (sin selección: el archivo entero)
+        }
         child(root, "countin")?.let {
             session.countIn = CountIn(flag(it, "on"), number(it, "bpm", 100.0).toInt(), number(it, "offset", 0.0))
         }
@@ -199,6 +202,7 @@ object Sidecar {
         session.selection?.let { (start, end) ->
             w.append("  <selection start=\"${text(start)}\" end=\"${text(end)}\" repeat=\"${session.repeat}\" />\n")
         }
+        if (session.selection == null && session.repeat) w.append("  <repeat whole=\"true\" />\n")
         session.countIn?.let {
             w.append("  <countin on=\"${it.on}\" bpm=\"${it.bpm}\" offset=\"${text(it.offset)}\" />\n")
         }

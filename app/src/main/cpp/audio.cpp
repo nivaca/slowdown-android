@@ -25,6 +25,7 @@ int64_t Audio::length() const {
 
 void Audio::append(const float* frames, int64_t count) {
     int64_t at_ = decoded_.load(std::memory_order_relaxed);
+    float loudest = loudest_.load(std::memory_order_relaxed);
     while (count > 0) {
         int64_t index = at_ >> CHUNK_SHIFT;
         if (index >= MAX_CHUNKS) return;  // (más largo de lo que cabe: se queda lo que entró)
@@ -51,7 +52,9 @@ void Audio::append(const float* frames, int64_t count) {
             }
             chunk->lo[frame / PEAK] = pending_lo_;
             chunk->hi[frame / PEAK] = pending_hi_;
+            loudest = std::max(loudest, std::fabs(sum));
         }
+        loudest_.store(loudest, std::memory_order_relaxed);
         frames += take * channels;
         count -= take;
         at_ += take;

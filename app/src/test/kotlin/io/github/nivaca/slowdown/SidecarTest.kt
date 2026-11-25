@@ -115,6 +115,22 @@ class SidecarTest {
     }
 
     @Test
+    fun repeatsTheWholeFile() {
+        // Sin selección, <repeat whole="true"/>, como py-slowdown 1.3
+        val source = Source("content://a/w", "whole.mp3", 1)
+        val file = Sidecar.save(Session(repeat = true), source, folder, "0.1.0")
+        assertTrue("<repeat whole=\"true\" />" in file.readText())
+        assertTrue(Sidecar.read(file)!!.repeat)
+        assertFalse("<repeat" in Sidecar.format(Session(), source, "0.1.0"))
+    }
+
+    @Test
+    fun exportsTheBookmarksAsTheDesktop() {
+        val text = MainActivity.exportText(listOf(Bookmark(58.0, "Guitar solo"), Bookmark(21.5, "Second verse")), "song.mp3")
+        assertEquals("# song.mp3\n0:21.5\tSecond verse\n0:58.0\tGuitar solo\n", text)
+    }
+
+    @Test
     fun notOneOfOurs() {
         val file = File(folder, "x.slx").apply { writeText("<other/>") }
         assertNull(Sidecar.read(file))

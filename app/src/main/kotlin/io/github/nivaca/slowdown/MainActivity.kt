@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 /*
- * La ventana de Slowdown: abre un archivo, lo muestra como onda y lo toca a la
- * velocidad y la altura elegidas, con marcadores, una selección que se repite
- * y bucles guardados.
+ * La ventana de Slowdown, ordenada como la de py-slowdown: la onda arriba; la
+ * reproducción y el tiempo; las perillas de la velocidad, el volumen y la
+ * altura; la selección; y el panel de los marcadores y los bucles, con sus dos
+ * pestañas.
  *
- * Lo que se hace con cada archivo (la posición, la velocidad, la altura, la
- * selección, los marcadores y los bucles) se guarda en su .slx (Sidecar.kt) al
- * salir de la ventana, al cerrar el archivo y al cambiar un marcador o un bucle.
- * El último archivo se abre otra vez al volver.
+ * Lo que se hace con cada archivo (la posición, la velocidad, la altura, el
+ * volumen, la selección, los marcadores y los bucles) se guarda en su .slx
+ * (Sidecar.kt) al salir de la ventana, al cerrar el archivo y al cambiar un
+ * marcador o un bucle. El último archivo se abre otra vez al volver.
  */
 package io.github.nivaca.slowdown
 
@@ -18,6 +19,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
@@ -28,45 +31,54 @@ import android.os.Looper
 import android.provider.OpenableColumns
 import android.text.InputType
 import android.view.Choreographer
-import android.view.Gravity
 import android.view.KeyEvent
 import android.view.Menu
 import android.view.MenuItem
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewGroup
 import android.view.WindowInsets
 import android.view.WindowManager
+import android.widget.BaseAdapter
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.LinearLayout
-import android.widget.SeekBar
+import android.widget.ListView
+import android.widget.PopupMenu
 import android.widget.TextView
 import android.widget.Toast
 import java.io.File
-import java.util.Locale
 import kotlin.concurrent.thread
+import kotlin.math.ceil
 import kotlin.math.roundToInt
+import kotlin.math.sqrt
 
 class MainActivity : Activity(), WaveformView.Listener {
 
     private lateinit var prefs: SharedPreferences
+    private lateinit var palette: Palette
     private lateinit var waveform: WaveformView
     private lateinit var hint: TextView
     private lateinit var time: TextView
     private lateinit var status: TextView
     private lateinit var playButton: ImageButton
-    private lateinit var speedBar: SeekBar
-    private lateinit var speedLabel: TextView
-    private lateinit var pitchLabel: TextView
-    private lateinit var centsBar: SeekBar
-    private lateinit var selectionLabel: TextView
     private lateinit var repeatButton: ImageButton
-    private lateinit var bookmarkList: LinearLayout
-    private lateinit var loopList: LinearLayout
-    private lateinit var loopsHeading: TextView
     private lateinit var backButton: ImageButton
     private lateinit var forwardButton: ImageButton
+    private lateinit var speedKnob: Knob
+    private lateinit var volumeKnob: Knob
+    private lateinit var semitoneKnob: Knob
+    private lateinit var centKnob: Knob
+    private lateinit var boost: CheckBox
+    private lateinit var originalPitch: Button
+    private lateinit var selectionLabel: TextView
+    private lateinit var tabBookmarks: TextView
+    private lateinit var tabLoops: TextView
+    private lateinit var headerTime: TextView
+    private lateinit var list: ListView
+    private lateinit var exportButton: Button
 
     private val handler = Handler(Looper.getMainLooper())
     private var uri: Uri? = null
@@ -76,6 +88,8 @@ class MainActivity : Activity(), WaveformView.Listener {
     private var opening = false
     private var menu: Menu? = null
     private var skip = 5
+    private var showingLoops = false
+    private var chosen = -1  // la fila elegida de la tabla
 
     // La carpeta de los .slx, dentro de la aplicación
     private val slxFolder by lazy { File(filesDir, "slx") }
@@ -87,9 +101,10 @@ class MainActivity : Activity(), WaveformView.Listener {
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
         setContentView(R.layout.main)
-        prefs = getSharedPreferences("settings", MODE_PRIVATE)
-        skip = prefs.getInt("skip", 5)
         setActionBar(findViewById(R.id.toolbar))
+        prefs = getSharedPreferences("settings", MODE_PRIVATE)
+        palette = Palette(this)
+        skip = prefs.getInt("skip", 5)
         bind()
         // De borde a borde (obligatorio desde Android 15): nada queda bajo la barra de estado ni la de navegación
         findViewById<View>(R.id.root).setOnApplyWindowInsetsListener { view, insets ->
@@ -153,61 +168,124 @@ class MainActivity : Activity(), WaveformView.Listener {
         time = findViewById(R.id.time)
         status = findViewById(R.id.status)
         playButton = findViewById(R.id.play)
-        speedBar = findViewById(R.id.speed)
-        speedLabel = findViewById(R.id.speed_label)
-        pitchLabel = findViewById(R.id.pitch_label)
-        centsBar = findViewById(R.id.cents)
-        selectionLabel = findViewById(R.id.selection)
         repeatButton = findViewById(R.id.repeat)
-        bookmarkList = findViewById(R.id.bookmark_list)
-        loopList = findViewById(R.id.loop_list)
-        loopsHeading = findViewById(R.id.loops_heading)
         backButton = findViewById(R.id.back)
         forwardButton = findViewById(R.id.forward)
+        speedKnob = findViewById(R.id.speed)
+        volumeKnob = findViewById(R.id.volume)
+        semitoneKnob = findViewById(R.id.semitones)
+        centKnob = findViewById(R.id.cents)
+        boost = findViewById(R.id.boost)
+        originalPitch = findViewById(R.id.original_pitch)
+        selectionLabel = findViewById(R.id.selection)
+        time.typeface = android.graphics.Typeface.MONOSPACE  // (el tipo del teléfono puede cambiar «monospace»)
+        tabBookmarks = findViewById(R.id.tab_bookmarks)
+        tabLoops = findViewById(R.id.tab_loops)
+        headerTime = findViewById(R.id.header_time)
+        list = findViewById(R.id.list)
+        exportButton = findViewById(R.id.export)
 
         playButton.setOnClickListener { toggle() }
+        findViewById<View>(R.id.stop).setOnClickListener {
+            Engine.stop()
+            showPlaying()
+        }
         findViewById<View>(R.id.to_start).setOnClickListener { seek(0.0) }
         findViewById<View>(R.id.to_end).setOnClickListener { seek(Engine.duration()) }
         repeating(backButton) { jump(-skip.toDouble()) }
         repeating(forwardButton) { jump(skip.toDouble()) }
         updateSkipDescriptions()
+        repeatButton.setOnClickListener { setRepeat(!session.repeat) }
 
-        speedBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(bar: SeekBar, progress: Int, fromUser: Boolean) {
-                if (fromUser) setSpeed(Engine.MIN_SPEED + progress / 100.0)
-            }
-            override fun onStartTrackingTouch(bar: SeekBar) {}
-            override fun onStopTrackingTouch(bar: SeekBar) {}
-        })
-        findViewById<View>(R.id.slower).setOnClickListener { setSpeed(session.speed - 0.05) }
-        findViewById<View>(R.id.faster).setOnClickListener { setSpeed(session.speed + 0.05) }
-        speedLabel.setOnClickListener { setSpeed(1.0) }
-        findViewById<View>(R.id.speed_50).setOnClickListener { setSpeed(0.5) }
-        findViewById<View>(R.id.speed_75).setOnClickListener { setSpeed(0.75) }
-        findViewById<View>(R.id.speed_100).setOnClickListener { setSpeed(1.0) }
+        // La velocidad, en por ciento, con 100 % arriba: de 25 a 100 a la izquierda, de 100 a 300 a la derecha
+        speedKnob.apply {
+            minimum = (Engine.MIN_SPEED * 100).roundToInt()
+            maximum = (Engine.MAX_SPEED * 100).roundToInt()
+            top = 100
+            home = 100
+            ticks = SPEED_TICKS
+            format = { "$it%" }
+            show(100)
+            onChange = { setSpeed(it / 100.0, fromKnob = true) }
+        }
+        findViewById<View>(R.id.normal_speed).setOnClickListener { setSpeed(1.0) }
+        findViewById<View>(R.id.speeds).setOnClickListener { speedMenu(it) }
 
-        findViewById<View>(R.id.lower).setOnClickListener { setPitch(semitones() - 1, cents()) }
-        findViewById<View>(R.id.higher).setOnClickListener { setPitch(semitones() + 1, cents()) }
-        pitchLabel.setOnClickListener { setPitch(0, 0) }
-        centsBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(bar: SeekBar, progress: Int, fromUser: Boolean) {
-                if (fromUser) setPitch(semitones(), progress)
-            }
-            override fun onStartTrackingTouch(bar: SeekBar) {}
-            override fun onStopTrackingTouch(bar: SeekBar) {}
-        })
+        // El volumen: hasta 100 % (el sonido de la grabación); con el refuerzo, por 1,5, en rojo donde lo pasa
+        volumeKnob.apply {
+            minimum = 0
+            maximum = NORMAL_VOLUME
+            home = NORMAL_VOLUME
+            ticks = VOLUME_TICKS
+            format = { "$it%" }
+            show(NORMAL_VOLUME)
+            onChange = { setVolume(it) }
+        }
+        boost.isChecked = prefs.getBoolean("volume_boost", false)
+        boost.setOnCheckedChangeListener { _, on ->
+            prefs.edit().putBoolean("volume_boost", on).apply()
+            applyVolume()
+        }
+        boost.tooltipText = getString(R.string.boost_hint)
+
+        // La altura: semitonos y cents, cada uno con su perilla, 0 arriba
+        semitoneKnob.apply {
+            minimum = -Engine.MAX_PITCH.toInt()
+            maximum = Engine.MAX_PITCH.toInt()
+            top = 0
+            ticks = (minimum..maximum).filter { it % SEMITONE_TICK == 0 || it == minimum || it == maximum }
+            format = signed(getString(R.string.st))
+            show(0)
+            onChange = { setPitch(it, centKnob.value) }
+        }
+        centKnob.apply {
+            minimum = -MAX_CENTS
+            maximum = MAX_CENTS
+            top = 0
+            ticks = (minimum..maximum).filter { it % CENT_TICK == 0 }
+            format = signed(" ¢")
+            show(0)
+            onChange = { setPitch(semitoneKnob.value, it) }
+        }
+        originalPitch.setOnClickListener { setPitch(0, 0) }
 
         findViewById<View>(R.id.mark_a).setOnClickListener { selectionEdge(start = true) }
         findViewById<View>(R.id.mark_b).setOnClickListener { selectionEdge(start = false) }
-        repeatButton.setOnClickListener { setRepeat(!session.repeat) }
         findViewById<View>(R.id.clear).setOnClickListener { setSelection(null) }
-        findViewById<View>(R.id.save_loop).setOnClickListener { saveLoop() }
-        findViewById<View>(R.id.add_bookmark).setOnClickListener { if (loaded) addBookmark(Engine.position()) }
-        for (id in listOf(R.id.to_start, R.id.back, R.id.forward, R.id.to_end, R.id.slower, R.id.faster,
-            R.id.lower, R.id.higher, R.id.repeat, R.id.save_loop, R.id.clear, R.id.add_bookmark)) {
-            val view = findViewById<View>(id)
-            view.tooltipText = view.contentDescription
+
+        // El panel de los marcadores y los bucles
+        tabBookmarks.setOnClickListener { showTab(loops = false) }
+        tabLoops.setOnClickListener { showTab(loops = true) }
+        findViewById<View>(R.id.table_header).setBackgroundColor(palette.ruler)
+        findViewById<View>(R.id.table).setBackgroundColor(palette.base)
+        list.adapter = table
+        list.setOnItemClickListener { _, _, position, _ -> choose(position) }
+        list.setOnItemLongClickListener { _, _, position, _ ->
+            choose(position)
+            edit(position)
+            true
         }
+        findViewById<View>(R.id.add).setOnClickListener {
+            if (showingLoops) saveLoop() else if (loaded) addBookmark(Engine.position())
+        }
+        findViewById<View>(R.id.remove).setOnClickListener { removeChosen() }
+        exportButton.setOnClickListener { exportBookmarks() }
+        showTab(loops = false)
+
+        for (id in listOf(R.id.to_start, R.id.back, R.id.play, R.id.stop, R.id.forward, R.id.to_end, R.id.repeat,
+            R.id.normal_speed, R.id.speeds, R.id.original_pitch, R.id.mark_a, R.id.mark_b, R.id.clear)) {
+            val view = findViewById<View>(id)
+            view.tooltipText = view.contentDescription ?: (view as? TextView)?.text
+        }
+        for (id in listOf(R.id.mark_a, R.id.mark_b)) {
+            val view = findViewById<View>(id)
+            view.tooltipText = "${view.contentDescription}. ${getString(R.string.no_selection)}"
+        }
+    }
+
+    private fun signed(unit: String): (Int) -> String = { value ->
+        val sign = if (value > 0) "+" else if (value < 0) "−" else ""
+        "$sign${kotlin.math.abs(value)}$unit"
     }
 
     // Un botón que, mantenido, se repite (como en el ordenador)
@@ -242,15 +320,10 @@ class MainActivity : Activity(), WaveformView.Listener {
         forwardButton.tooltipText = forwardButton.contentDescription
     }
 
-    private fun semitones(): Int = session.pitch.let { Math.round(it - cents() / 100.0).toInt() }
-    private fun cents(): Int = centsBar.progress
-
     // --- abrir y cerrar
 
     private fun hasPermission(uri: Uri) =
         uri.scheme == "file" || contentResolver.persistedUriPermissions.any { it.uri == uri && it.isReadPermission }
-
-    private val picker = 1
 
     private fun pick() {
         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
@@ -259,21 +332,25 @@ class MainActivity : Activity(), WaveformView.Listener {
             putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("audio/*", "video/*", "application/ogg"))
         }
         @Suppress("DEPRECATION")
-        startActivityForResult(intent, picker)
+        startActivityForResult(intent, PICK)
     }
 
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(request: Int, result: Int, data: Intent?) {
         @Suppress("DEPRECATION")
         super.onActivityResult(request, result, data)
-        if (request == picker && result == RESULT_OK) {
-            val chosen = data?.data ?: return
-            try {
-                contentResolver.takePersistableUriPermission(chosen, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            } catch (_: SecurityException) {
-                // (algunos proveedores no lo permiten: se puede tocar igual, pero no reabrir)
+        if (result != RESULT_OK) return
+        val target = data?.data ?: return
+        when (request) {
+            PICK -> {
+                try {
+                    contentResolver.takePersistableUriPermission(target, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                } catch (_: SecurityException) {
+                    // (algunos proveedores no lo permiten: se puede tocar igual, pero no reabrir)
+                }
+                open(target)
             }
-            open(chosen)
+            EXPORT -> writeBookmarks(target)
         }
     }
 
@@ -339,15 +416,23 @@ class MainActivity : Activity(), WaveformView.Listener {
         waveform.duration = 0.0
         waveform.duration = Engine.duration()
         Engine.setFormants(session.formants)
-        Engine.setSpeed(session.speed)
-        Engine.setPitch(session.pitch)
-        Engine.setVolume((session.volume ?: 100) / 100.0)
         session.speed = Engine.clampSpeed(session.speed)
-        val cents = Math.round((session.pitch - Math.round(session.pitch)) * 100).toInt()
-        centsBar.progress = cents
+        Engine.setSpeed(session.speed)
+        session.pitch = session.pitch.coerceIn(-Engine.MAX_PITCH, Engine.MAX_PITCH)
+        Engine.setPitch(session.pitch)
+        session.volume?.let { kept ->
+            if (kept > NORMAL_VOLUME) {
+                // (de py-slowdown 1.3, más fuerte que la grabación: con el refuerzo, lo que suena casi igual)
+                boost.isChecked = true
+                session.volume = minOf(NORMAL_VOLUME, (kept / sqrt(BOOST)).roundToInt())
+            }
+        }
+        volumeKnob.show(session.volume ?: NORMAL_VOLUME)
+        applyVolume()
         setSelection(session.selection, save = false)
         if (session.position > 0) Engine.seek(session.position)
         waveform.update(session.position)
+        chosen = -1
         showSpeed()
         showPitch()
         showMarks()
@@ -362,9 +447,10 @@ class MainActivity : Activity(), WaveformView.Listener {
         waveform.duration = 0.0
         waveform.bookmarks = emptyList()
         waveform.selection = null
-        time.text = ""
+        time.text = "0:00.0 / 0:00.0"
         status.text = ""
         session = Session()
+        chosen = -1
         showSpeed()
         showPitch()
         showMarks()
@@ -420,29 +506,61 @@ class MainActivity : Activity(), WaveformView.Listener {
         if (loaded) seek(Engine.position() + seconds)
     }
 
-    private fun setSpeed(speed: Double) {
+    private fun setSpeed(speed: Double, fromKnob: Boolean = false) {
         session.speed = Engine.clampSpeed(Math.round(speed * 100) / 100.0)
         Engine.setSpeed(session.speed)
-        showSpeed()
+        if (!fromKnob) showSpeed()
     }
 
     private fun showSpeed() {
-        speedLabel.text = getString(R.string.speed_value, String.format(Locale.ROOT, "%.2f", session.speed))
-        speedBar.progress = ((session.speed - Engine.MIN_SPEED) * 100).roundToInt()
+        speedKnob.show((session.speed * 100).roundToInt())
+    }
+
+    private fun speedMenu(anchor: View) {
+        // Las velocidades de siempre, con la de ahora marcada si está entre ellas
+        val popup = PopupMenu(this, anchor)
+        val now = (session.speed * 100).roundToInt()
+        for ((i, percent) in SPEED_PRESETS.withIndex()) {
+            popup.menu.add(0, i, i, "$percent%").apply {
+                isCheckable = true
+                isChecked = percent == now
+            }
+        }
+        popup.setOnMenuItemClickListener { item ->
+            setSpeed(SPEED_PRESETS[item.itemId] / 100.0)
+            true
+        }
+        popup.show()
     }
 
     private fun setPitch(semitones: Int, cents: Int) {
         val whole = semitones.coerceIn(-Engine.MAX_PITCH.toInt(), Engine.MAX_PITCH.toInt())
-        session.pitch = (whole + cents / 100.0).coerceIn(-Engine.MAX_PITCH, Engine.MAX_PITCH)
-        centsBar.progress = cents
+        session.pitch = (whole + cents.coerceIn(-MAX_CENTS, MAX_CENTS) / 100.0).coerceIn(-Engine.MAX_PITCH, Engine.MAX_PITCH)
         Engine.setPitch(session.pitch)
         showPitch()
     }
 
     private fun showPitch() {
-        val st = semitones()
-        val c = cents()
-        pitchLabel.text = getString(R.string.pitch_value, if (st > 0) "+$st" else "$st", if (c > 0) "+$c" else "$c")
+        // Los semitonos y los cents: los cents como decimales de la altura (−2,30: −2 st, −30 ¢)
+        val whole = session.pitch.toInt()
+        val cents = Math.round((session.pitch - whole) * 100).toInt()
+        semitoneKnob.show(whole)
+        centKnob.show(cents)
+        originalPitch.isEnabled = session.pitch != 0.0
+    }
+
+    private fun setVolume(value: Int) {
+        session.volume = value
+        applyVolume()
+    }
+
+    private fun applyVolume() {
+        // Una curva cuadrada (los pasos de la perilla suenan más parejos al oído), por 1,5 con el refuerzo
+        val value = volumeKnob.value
+        Engine.setVolume((value / 100.0) * (value / 100.0) * (if (boost.isChecked) BOOST else 1.0))
+        // (en rojo desde el primer valor que, con el refuerzo, pasa del sonido de la grabación: 82 %)
+        volumeKnob.warn = if (boost.isChecked) ceil(100 / sqrt(BOOST)).toInt() - 1 else null
+        volumeKnob.tooltipText = getString(R.string.volume_value, value)
     }
 
     private fun showPlaying() {
@@ -470,6 +588,7 @@ class MainActivity : Activity(), WaveformView.Listener {
                     waveform.duration = Engine.duration()
                     val total = Engine.duration() * Engine.rate()
                     status.text = if (done) "" else "${(100 * Engine.decoded() / maxOf(1.0, total)).roundToInt()} %"
+                    if (done) applyRepeat()  // (el archivo entero se repite cuando está leído hasta su final)
                 }
                 if (Engine.takeEnded() || wasPlaying != Engine.playing()) {
                     wasPlaying = Engine.playing()
@@ -480,7 +599,7 @@ class MainActivity : Activity(), WaveformView.Listener {
         }
     }
 
-    // --- la selección
+    // --- la selección y la repetición
 
     private fun selectionEdge(start: Boolean) {
         // A: la selección empieza aquí (y acaba donde acababa, o al final); B: acaba aquí
@@ -494,7 +613,6 @@ class MainActivity : Activity(), WaveformView.Listener {
 
     private fun setSelection(selection: Pair<Double, Double>?, save: Boolean = true) {
         session.selection = selection
-        if (selection == null) session.repeat = false
         waveform.selection = selection
         applyRepeat()
         showSelection()
@@ -502,30 +620,32 @@ class MainActivity : Activity(), WaveformView.Listener {
     }
 
     private fun setRepeat(on: Boolean) {
-        if (on && session.selection == null) {
-            Toast.makeText(this, R.string.no_selection, Toast.LENGTH_SHORT).show()
-            return
-        }
         session.repeat = on
+        if (on && session.selection == null && loaded) {
+            Toast.makeText(this, R.string.repeat_whole, Toast.LENGTH_SHORT).show()
+        }
         applyRepeat()
-        showSelection()
     }
 
     private fun applyRepeat() {
+        // La selección, o el archivo entero si no hay (cuando esté leído hasta su final)
         val selection = session.selection
         if (loaded) {
-            if (session.repeat && selection != null) Engine.setLoop(selection.first, selection.second)
-            else if (Engine.looping()) Engine.setLoop(-1.0, -1.0)
+            when {
+                session.repeat && selection != null -> Engine.setLoop(selection.first, selection.second)
+                session.repeat && Engine.done() -> Engine.setLoop(0.0, Engine.duration())
+                Engine.looping() && !session.repeat -> Engine.setLoop(-1.0, -1.0)
+            }
         }
-        waveform.repeating = session.repeat
+        waveform.repeating = session.repeat && selection != null
         repeatButton.isActivated = session.repeat
-        repeatButton.imageTintList = if (session.repeat)
-            android.content.res.ColorStateList.valueOf(getColor(android.R.color.system_accent1_300)) else null
+        repeatButton.imageTintList = if (session.repeat) ColorStateList.valueOf(palette.wave) else null
+        repeatButton.setBackgroundColor(if (session.repeat) (palette.wave and 0x00ffffff) or 0x33000000 else Color.TRANSPARENT)
     }
 
     private fun showSelection() {
         val selection = session.selection
-        selectionLabel.text = if (selection == null) getString(R.string.no_selection)
+        selectionLabel.text = if (selection == null) getString(R.string.selection_none)
         else getString(R.string.selection, TimeFormat.long(selection.first), TimeFormat.long(selection.second))
     }
 
@@ -541,7 +661,75 @@ class MainActivity : Activity(), WaveformView.Listener {
         addBookmark(seconds)
     }
 
-    // --- los marcadores y los bucles
+    // --- el panel de los marcadores y los bucles
+
+    private fun showTab(loops: Boolean) {
+        showingLoops = loops
+        chosen = -1
+        for ((tab, on) in listOf(tabBookmarks to !loops, tabLoops to loops)) {
+            tab.setTextColor(if (on) palette.text else palette.faint)
+            tab.setBackgroundColor(if (on) palette.base else Color.TRANSPARENT)
+            tab.paint.isFakeBoldText = on
+            tab.invalidate()
+        }
+        headerTime.text = getString(R.string.time)
+        exportButton.isEnabled = !loops
+        table.notifyDataSetChanged()
+    }
+
+    private fun choose(position: Int) {
+        chosen = position
+        table.notifyDataSetChanged()
+        if (showingLoops) {
+            // Un bucle: se elige su trecho y se repite
+            val loop = sortedLoops().getOrNull(position) ?: return
+            setSelection(loop.start to loop.end)
+            setRepeat(true)
+            seek(loop.start)
+        } else {
+            session.bookmarks.getOrNull(position)?.let { seek(it.time) }
+        }
+    }
+
+    private fun sortedLoops() = session.loops.sortedWith(compareBy({ it.start }, { it.end }))
+
+    private val table = object : BaseAdapter() {
+        override fun getCount() = if (showingLoops) session.loops.size else session.bookmarks.size
+        override fun getItem(position: Int): Any = if (showingLoops) sortedLoops()[position] else session.bookmarks[position]
+        override fun getItemId(position: Int) = position.toLong()
+
+        override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+            val row = (convertView as? LinearLayout) ?: LinearLayout(this@MainActivity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                minimumHeight = dp(40)
+                gravity = android.view.Gravity.CENTER_VERTICAL
+                addView(TextView(context).apply {
+                    fontFeatureSettings = "tnum"
+                    setPadding(dp(6), 0, dp(10), 0)
+                })
+                addView(TextView(context).apply { maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END },
+                    LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+            }
+            val left = row.getChildAt(0) as TextView
+            val right = row.getChildAt(1) as TextView
+            if (showingLoops) {
+                val loop = sortedLoops()[position]
+                left.text = "${TimeFormat.long(loop.start)} – ${TimeFormat.long(loop.end)}"
+                right.text = loop.label
+            } else {
+                val mark = session.bookmarks[position]
+                left.text = TimeFormat.long(mark.time)
+                right.text = if (mark.firstBeat) (if (mark.label.isEmpty()) "1" else "1 · ${mark.label}") else mark.label
+            }
+            // La fila elegida, como en el ordenador: con el color del resaltado y el texto en blanco
+            val on = position == chosen
+            row.setBackgroundColor(if (on) palette.wave else Color.TRANSPARENT)
+            val ink = if (on) Color.WHITE else palette.text
+            left.setTextColor(ink)
+            right.setTextColor(ink)
+            return row
+        }
+    }
 
     private fun ask(title: String, initial: String, done: (String) -> Unit) {
         val field = EditText(this).apply {
@@ -567,20 +755,36 @@ class MainActivity : Activity(), WaveformView.Listener {
 
     private fun dp(value: Int) = (value * resources.displayMetrics.density).roundToInt()
 
+    private fun changed() {
+        showMarks()
+        save()
+    }
+
     private fun addBookmark(seconds: Double) {
         if (!loaded) return
         val mark = Bookmark(Math.round(seconds * 1000) / 1000.0)
         session.bookmarks.add(mark)
-        showMarks()
-        save()
+        if (showingLoops) showTab(loops = false)
+        changed()
+        chosen = session.bookmarks.indexOf(mark)
+        table.notifyDataSetChanged()
+        list.smoothScrollToPosition(chosen)
         ask(getString(R.string.bookmark_at, TimeFormat.long(mark.time)), "") { label ->
             mark.label = label
-            showMarks()
-            save()
+            changed()
         }
     }
 
-    private fun editBookmark(mark: Bookmark) {
+    private fun edit(position: Int) {
+        if (showingLoops) {
+            val loop = sortedLoops().getOrNull(position) ?: return
+            ask(getString(R.string.loop_name, TimeFormat.long(loop.start), TimeFormat.long(loop.end)), loop.label) {
+                loop.label = it
+                changed()
+            }
+            return
+        }
+        val mark = session.bookmarks.getOrNull(position) ?: return
         val items = arrayOf(getString(R.string.rename), getString(R.string.first_beat), getString(R.string.remove))
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.bookmark_at, TimeFormat.long(mark.time)))
@@ -588,25 +792,31 @@ class MainActivity : Activity(), WaveformView.Listener {
                 when (which) {
                     0 -> ask(getString(R.string.bookmark_at, TimeFormat.long(mark.time)), mark.label) {
                         mark.label = it
-                        showMarks()
-                        save()
+                        changed()
                     }
                     1 -> {
                         // (uno solo por archivo)
                         val was = mark.firstBeat
                         session.bookmarks.forEach { it.firstBeat = false }
                         mark.firstBeat = !was
-                        showMarks()
-                        save()
+                        changed()
                     }
                     2 -> {
                         session.bookmarks.remove(mark)
-                        showMarks()
-                        save()
+                        chosen = -1
+                        changed()
                     }
                 }
             }
             .show()
+    }
+
+    private fun removeChosen() {
+        if (chosen < 0) return
+        if (showingLoops) sortedLoops().getOrNull(chosen)?.let { session.loops.remove(it) }
+        else session.bookmarks.getOrNull(chosen)?.let { session.bookmarks.remove(it) }
+        chosen = -1
+        changed()
     }
 
     private fun saveLoop() {
@@ -618,71 +828,40 @@ class MainActivity : Activity(), WaveformView.Listener {
         val (a, b) = selection
         ask(getString(R.string.loop_name, TimeFormat.long(a), TimeFormat.long(b)), "") { label ->
             session.loops.add(Loop(Math.round(a * 1000) / 1000.0, Math.round(b * 1000) / 1000.0, label))
-            showMarks()
-            save()
+            if (!showingLoops) showTab(loops = true)
+            changed()
         }
-    }
-
-    private fun editLoop(loop: Loop) {
-        val items = arrayOf(getString(R.string.rename), getString(R.string.remove))
-        AlertDialog.Builder(this)
-            .setTitle(getString(R.string.loop_name, TimeFormat.long(loop.start), TimeFormat.long(loop.end)).substringBefore(':'))
-            .setItems(items) { _, which ->
-                if (which == 0) ask(loop.label.ifEmpty { getString(R.string.loops) }, loop.label) {
-                    loop.label = it
-                    showMarks()
-                    save()
-                } else {
-                    session.loops.remove(loop)
-                    showMarks()
-                    save()
-                }
-            }
-            .show()
-    }
-
-    private fun row(left: String, right: String, tap: () -> Unit, hold: () -> Unit, highlight: Boolean = false): View {
-        val view = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            minimumHeight = dp(44)
-            val attrs = obtainStyledAttributes(intArrayOf(android.R.attr.selectableItemBackground))
-            background = attrs.getDrawable(0)
-            attrs.recycle()
-            setOnClickListener { tap() }
-            setOnLongClickListener { hold(); true }
-        }
-        val time = TextView(this).apply {
-            text = left
-            fontFeatureSettings = "tnum"
-            setPadding(0, 0, dp(16), 0)
-            if (highlight) setTextColor(android.graphics.Color.rgb(0xe0, 0x5a, 0x4f))
-        }
-        val label = TextView(this).apply {
-            text = right
-            setTextAppearance(android.R.style.TextAppearance_DeviceDefault_Medium)
-        }
-        view.addView(time)
-        view.addView(label, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-        return view
     }
 
     private fun showMarks() {
         session.bookmarks.sortBy { it.time }
         waveform.bookmarks = session.bookmarks.toList()
-        bookmarkList.removeAllViews()
-        for (mark in session.bookmarks) {
-            val label = mark.label.ifEmpty { if (mark.firstBeat) getString(R.string.first_beat) else "" }
-            bookmarkList.addView(row(TimeFormat.long(mark.time), label, { seek(mark.time) }, { editBookmark(mark) }, mark.firstBeat))
+        if (chosen >= table.count) chosen = -1
+        table.notifyDataSetChanged()
+    }
+
+    // Los marcadores como texto, uno por línea: el tiempo, un tabulador y el nombre (como py-slowdown)
+    private fun exportBookmarks() {
+        val source = source ?: return
+        if (session.bookmarks.isEmpty()) return
+        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TITLE, source.name.substringBeforeLast('.') + ".bookmarks.txt")
         }
-        loopList.removeAllViews()
-        loopsHeading.visibility = if (session.loops.isEmpty()) View.GONE else View.VISIBLE
-        for (loop in session.loops.sortedWith(compareBy({ it.start }, { it.end }))) {
-            loopList.addView(row("${TimeFormat.long(loop.start)} – ${TimeFormat.long(loop.end)}", loop.label, {
-                setSelection(loop.start to loop.end)
-                setRepeat(true)
-                seek(loop.start)
-            }, { editLoop(loop) }))
+        @Suppress("DEPRECATION")
+        startActivityForResult(intent, EXPORT)
+    }
+
+    private fun writeBookmarks(target: Uri) {
+        val source = source ?: return
+        try {
+            contentResolver.openOutputStream(target, "wt")?.use {
+                it.write(exportText(session.bookmarks, source.name).toByteArray(Charsets.UTF_8))
+            }
+            Toast.makeText(this, getString(R.string.saved, describe(target).name), Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(this, e.message ?: e.toString(), Toast.LENGTH_LONG).show()
         }
     }
 
@@ -774,10 +953,10 @@ class MainActivity : Activity(), WaveformView.Listener {
             KeyEvent.KEYCODE_PAGE_DOWN -> nextBookmark(1)
             KeyEvent.KEYCODE_MOVE_HOME -> seek(0.0)
             KeyEvent.KEYCODE_MOVE_END -> seek(Engine.duration())
-            KeyEvent.KEYCODE_DPAD_UP -> if (ctrl) setPitch(semitones() + 1, cents()) else setSpeed(session.speed + 0.05)
-            KeyEvent.KEYCODE_DPAD_DOWN -> if (ctrl) setPitch(semitones() - 1, cents()) else setSpeed(session.speed - 0.05)
-            KeyEvent.KEYCODE_PLUS, KeyEvent.KEYCODE_EQUALS -> setSpeed(session.speed + 0.05)
-            KeyEvent.KEYCODE_MINUS -> setSpeed(session.speed - 0.05)
+            KeyEvent.KEYCODE_DPAD_UP -> if (ctrl) setPitch(semitoneKnob.value + 1, centKnob.value) else setSpeed(session.speed + SPEED_STEP)
+            KeyEvent.KEYCODE_DPAD_DOWN -> if (ctrl) setPitch(semitoneKnob.value - 1, centKnob.value) else setSpeed(session.speed - SPEED_STEP)
+            KeyEvent.KEYCODE_PLUS, KeyEvent.KEYCODE_EQUALS -> setSpeed(session.speed + SPEED_STEP)
+            KeyEvent.KEYCODE_MINUS -> setSpeed(session.speed - SPEED_STEP)
             KeyEvent.KEYCODE_N -> if (shift) setPitch(0, 0) else setSpeed(1.0)
             KeyEvent.KEYCODE_S -> { Engine.stop(); showPlaying() }
             KeyEvent.KEYCODE_B -> addBookmark(Engine.position())
@@ -832,5 +1011,24 @@ class MainActivity : Activity(), WaveformView.Listener {
                 showPlaying()
             }
         }
+    }
+
+    companion object {
+        private const val PICK = 1
+        private const val EXPORT = 2
+        const val SPEED_STEP = 0.05
+        const val NORMAL_VOLUME = 100  // por ciento: el sonido de la grabación, lo más que da la perilla
+        const val BOOST = 1.5  // el refuerzo multiplica el sonido, sin que la perilla cambie de número
+        const val MAX_CENTS = 50
+        const val SEMITONE_TICK = 3
+        const val CENT_TICK = 5
+        val SPEED_TICKS = listOf(25, 50, 75, 100, 150, 200, 250, 300)  // alrededor de la perilla de la velocidad
+        val VOLUME_TICKS = listOf(0, 25, 50, 75, 100)
+        val SPEED_PRESETS = listOf(50, 60, 70, 75, 80, 90, 100, 110, 125, 150)  // las de py-slowdown
+
+        /** The bookmarks as plain text, one per line: time, a tab, the label (as py-slowdown exports them). */
+        fun exportText(bookmarks: List<Bookmark>, audioName: String): String =
+            (listOf("# $audioName") + bookmarks.sortedBy { it.time }.map { "${TimeFormat.long(it.time)}\t${it.label}" })
+                .joinToString("\n") + "\n"
     }
 }

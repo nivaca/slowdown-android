@@ -39,6 +39,8 @@ public:
     // Los cuadros que tendrá: los que anuncia el archivo mientras se decodifica, los decodificados al final.
     int64_t length() const;
     double duration() const { return double(length()) / rate; }
+    // El pico más alto de la mezcla hasta ahora (0 a 1): la onda se dibuja a su escala.
+    float loudest() const { return loudest_.load(std::memory_order_relaxed); }
 
     // Copia en OUT (intercalados) los cuadros de START a END que ya están; devuelve cuántos.
     // START puede ser negativo: entonces se copian solo los de 0 en adelante (como audio.frames en Python).
@@ -59,6 +61,7 @@ private:
     std::atomic<bool> done_{false};
     std::atomic<bool> failed_{false};
     std::atomic<int64_t> expected_{0};
+    std::atomic<float> loudest_{0.0f};
     float pending_lo_ = 0, pending_hi_ = 0;  // el pico a medio hacer (solo el decodificador los toca)
 
     const float* at(int64_t frame) const;

@@ -19,26 +19,37 @@ Qué hace
   veces el tiempo real), de modo que su onda se completa en unos segundos
   mientras ya suena. Los archivos de más de dos canales se mezclan en
   estéreo.
-- Muestra el audio como onda, con una regla de tiempo. Un toque lleva la
-  posición allí; arrastrar desplaza la vista; pellizcar acerca o aleja
-  alrededor de los dedos.
-- Tocar, pausar, ir al principio o al final, atrás y adelante según una
+- La ventana está ordenada como la de py-slowdown, y dibujada con sus colores
+  (claros u oscuros, según el teléfono): la onda, más oscura donde ya sonó,
+  con la posición en rojo y los marcadores en naranja; debajo, los botones de
+  la reproducción y el tiempo; las perillas de la velocidad, el volumen y la
+  altura, y el panel de los marcadores y los bucles, con sus dos pestañas. Un
+  toque en la onda lleva la posición allí; arrastrar desplaza la vista;
+  pellizcar acerca o aleja alrededor de los dedos. Una perilla se gira
+  arrastrando hacia arriba o a la derecha (hacia abajo o a la izquierda, al
+  revés), y vuelve a su valor de siempre con un doble toque.
+- Tocar, pausar, detener, ir al principio o al final, atrás y adelante según una
   longitud del salto que se elige en el menú (de 1 a 60 segundos; mantenga
   apretado el botón para seguir).
 - Velocidad de 0,25× a 3×, que se cambia mientras suena, sin cambiar la
   altura. El estiramiento lo hace la [biblioteca Rubber Band](https://breakfastquay.com/rubberband/),
   con su motor R3 («finer»). A 1× el archivo suena tal cual, muestra por
-  muestra. En el menú se puede elegir una calidad ligera (la mitad del
+  muestra. El botón Velocidades tiene las de py-slowdown (50 %, 75 %,
+  100 %…). En el menú se puede elegir una calidad ligera (la mitad del
   procesador) o el motor anterior, R2 (ataques nítidos).
 - Sube o baja la altura en semitonos (de −12 a +12) y cents (de −50 a +50),
   también mientras suena; con «Conservar los formantes», una voz o un
   instrumento conserva su timbre.
-- Repite una selección sin fin y sin hueco: mantenga un dedo sobre la onda y
-  arrástrelo, o ponga su principio y su final con A y B en la posición. Las
-  selecciones se pueden guardar como bucles con un nombre.
+- Repite una selección sin fin y sin hueco, o el archivo entero si no hay:
+  mantenga un dedo sobre la onda y arrástrelo, o ponga su principio y su
+  final con A y B en la posición. Las selecciones se pueden guardar como
+  bucles con un nombre (Añadir, en la pestaña Bucles).
+- El volumen, hasta 100 % (el de la grabación), o más con el Refuerzo (el
+  sonido por 1,5, la perilla en rojo donde pasa el de la grabación).
 - Marcadores en la posición, o en cualquier punto manteniendo un dedo sobre
-  la onda sin moverlo; cada uno puede tener un nombre, y uno puede ser el
-  primer pulso de la grabación.
+  la onda sin moverlo; cada uno puede tener un nombre (manteniendo un dedo
+  sobre su fila), y uno puede ser el primer pulso de la grabación. Se pueden
+  exportar como archivo de texto, como en py-slowdown.
 - Recuerda, de cada archivo, sus marcadores, sus bucles, el punto donde se
   dejó y cómo se tocó, en un archivo `.slx` como los de py-slowdown, y abre
   otra vez el último archivo al empezar.

@@ -48,6 +48,7 @@ FN(jint, channels)(JNIEnv*, jobject) { auto a = audio(); return a ? a->channels 
 FN(jlong, decoded)(JNIEnv*, jobject) { auto a = audio(); return a ? a->decoded() : 0; }
 FN(jboolean, done)(JNIEnv*, jobject) { auto a = audio(); return a && a->done(); }
 FN(jboolean, failed)(JNIEnv*, jobject) { auto a = audio(); return a && a->failed(); }
+FN(jfloat, loudest)(JNIEnv*, jobject) { auto a = audio(); return a ? a->loudest() : 0.0f; }
 FN(jdouble, duration)(JNIEnv*, jobject) { return player()->duration(); }
 
 FN(void, peaks)(JNIEnv* env, jobject, jdouble start, jdouble fpp, jfloatArray out) {

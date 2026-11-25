@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 /*
- * La onda del archivo, con una regla de tiempo arriba, la posición, la selección
- * y los marcadores.
+ * La onda del archivo, como en py-slowdown: una regla de tiempo arriba, la
+ * franja de los nombres de los marcadores, la onda (más oscura donde ya se
+ * tocó, a la escala del pico más alto), la posición en rojo, la selección en
+ * verde y los marcadores en naranja, con líneas de trazos.
  *
  * Un toque lleva la posición allí; arrastrar desplaza la vista; pellizcar acerca
  * o aleja alrededor de los dedos. Mantener el dedo y arrastrar selecciona un
@@ -12,9 +14,10 @@ package io.github.nivaca.slowdown
 
 import android.content.Context
 import android.graphics.Canvas
-import android.graphics.Color
+import android.graphics.DashPathEffect
 import android.graphics.Paint
-import android.graphics.Path
+import android.text.TextPaint
+import android.text.TextUtils
 import android.util.AttributeSet
 import android.view.GestureDetector
 import android.view.HapticFeedbackConstants
@@ -59,20 +62,17 @@ class WaveformView(context: Context, attrs: AttributeSet? = null) : View(context
     private var spp = 0.01
 
     private val density = resources.displayMetrics.density
-    private val ruler = 22 * density
-    private val accent = context.getColor(android.R.color.system_accent1_400)
-    private val wave = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = accent; strokeWidth = 1f }
-    private val playhead = Paint().apply { color = context.getColor(android.R.color.system_accent3_300); strokeWidth = 2 * density }
-    private val selectionPaint = Paint().apply { color = Color.argb(70, 255, 255, 255) }
-    private val repeatPaint = Paint().apply { color = context.getColor(android.R.color.system_accent2_300); alpha = 90 }
-    private val markPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(0xf2, 0xb1, 0x34); strokeWidth = 1.5f * density }
-    private val beatPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(0xe0, 0x5a, 0x4f); strokeWidth = 1.5f * density }
-    private val tick = Paint().apply { color = Color.argb(140, 200, 200, 200); strokeWidth = density }
-    private val label = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(200, 220, 220, 220); textSize = 11 * density }
-    private val background = context.getColor(android.R.color.system_neutral1_900)
-    private val rulerBackground = context.getColor(android.R.color.system_neutral1_800)
+    private val ruler = 22 * density  // la regla de tiempo
+    private val flagHeight = 18 * density  // la franja de los nombres de los marcadores, bajo la regla
+    private val palette = Palette(context)
+    private val fill = Paint()
+    private val line = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val dashed = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        pathEffect = DashPathEffect(floatArrayOf(4 * density, 3 * density), 0f)
+    }
+    private val label = Paint(Paint.ANTI_ALIAS_FLAG).apply { textSize = 11 * density }
     private var columns = FloatArray(0)
-    private val flag = Path()
 
     fun showAll() {
         if (duration > 0 && width > 0) {
@@ -82,7 +82,7 @@ class WaveformView(context: Context, attrs: AttributeSet? = null) : View(context
         invalidate()
     }
 
-    private fun maxSpp() = if (width > 0 && duration > 0) duration / width * 1.0 else 1.0
+    private fun maxSpp() = if (width > 0 && duration > 0) duration / width else 1.0
     private fun minSpp() = 4.0 / rate  // (cuatro cuadros por píxel, de cerca)
 
     fun zoom(factor: Double, focusX: Float = width / 2f) {
@@ -119,62 +119,116 @@ class WaveformView(context: Context, attrs: AttributeSet? = null) : View(context
 
     override fun onDraw(canvas: Canvas) {
         val w = width
-        val h = height
-        canvas.drawColor(background)
-        canvas.drawRect(0f, 0f, w.toFloat(), ruler, Paint().apply { color = rulerBackground })
+        val h = height.toFloat()
+        canvas.drawColor(palette.base)
+        fill.color = palette.ruler
+        canvas.drawRect(0f, 0f, w.toFloat(), ruler, fill)
         if (duration <= 0) return
-        val top = ruler
-        val middle = (top + h) / 2f
-        val half = (h - top) / 2f * 0.95f
+        drawRuler(canvas, w)
+        drawWave(canvas, w, ruler + flagHeight, h - ruler - flagHeight)
+        drawSelection(canvas, h)
+        drawMarks(canvas, h)
+        // La posición, en rojo
+        line.color = palette.cursor
+        line.strokeWidth = 2 * density
+        val x = xOf(position)
+        canvas.drawLine(x, ruler, x, h, line)
+    }
 
-        // La selección, debajo de la onda
-        selection?.let { (a, b) ->
-            canvas.drawRect(max(0f, xOf(a)), top, min(w.toFloat(), xOf(b)), h.toFloat(),
-                if (repeating) repeatPaint else selectionPaint)
-        }
-
-        // La onda: el mínimo y el máximo de cada columna
+    private fun drawWave(canvas: Canvas, w: Int, top: Float, height: Float) {
+        val middle = top + height / 2
+        line.color = palette.faint
+        line.strokeWidth = 1f
+        canvas.drawLine(0f, middle, w.toFloat(), middle, line)
         if (columns.size != 2 * w) columns = FloatArray(2 * w)
         Engine.peaks(start * rate, spp * rate, columns)
+        // A la escala del pico del archivo (lo leído hasta ahora): una grabación baja no se ve plana
+        val loudest = max(Engine.loudest(), 0.05f)
+        val half = (height / 2 - 2) / min(1f, loudest)
+        val limit = height / 2 - 2
+        val cursor = xOf(position)
         for (x in 0 until w) {
             val lo = columns[2 * x]
             val hi = columns[2 * x + 1]
             if (lo == 0f && hi == 0f) continue
-            canvas.drawLine(x + 0.5f, middle - hi * half, x + 0.5f, middle - lo * half + 1f, wave)
+            val yHi = middle - (hi * half).coerceIn(-limit, limit)
+            val yLo = max(middle - (lo * half).coerceIn(-limit, limit), yHi + 1)
+            // Lo ya tocado, de otro color
+            fill.color = if (x < cursor) palette.played else palette.wave
+            canvas.drawRect(x.toFloat(), yHi, x + 1f, yLo, fill)
         }
+        if (!Engine.done()) {
+            // Lo que falta leer: una franja tenue
+            val x = xOf(Engine.decoded().toDouble() / rate)
+            if (x < w) {
+                fill.color = palette.faint
+                fill.alpha = 40
+                canvas.drawRect(max(0f, x), top, w.toFloat(), top + height, fill)
+            }
+        }
+    }
 
-        drawRuler(canvas, w)
+    private fun drawSelection(canvas: Canvas, h: Float) {
+        val (a, b) = selection ?: return
+        val x0 = xOf(a)
+        val x1 = xOf(b)
+        fill.color = palette.select
+        fill.alpha = if (repeating) 90 else 45
+        canvas.drawRect(x0, ruler, x1, h, fill)
+        line.color = palette.select
+        line.strokeWidth = (if (repeating) 2 else 1) * density
+        canvas.drawLine(x0, ruler, x0, h, line)
+        canvas.drawLine(x1, ruler, x1, h, line)
+        fill.alpha = 255
+        canvas.drawRect(x0, 0f, x1, 4 * density, fill)  // (también en la regla)
+    }
 
-        // Los marcadores: una línea y una banderita
-        for (mark in bookmarks) {
+    private fun drawMarks(canvas: Canvas, h: Float) {
+        bookmarks.forEachIndexed { i, mark ->
             val x = xOf(mark.time)
-            if (x < -10 || x > w + 10) continue
-            val paint = if (mark.firstBeat) beatPaint else markPaint
-            canvas.drawLine(x, top, x, h.toFloat(), paint)
-            flag.reset()
-            flag.moveTo(x, top)
-            flag.lineTo(x + 8 * density, top + 5 * density)
-            flag.lineTo(x, top + 10 * density)
-            flag.close()
-            canvas.drawPath(flag, paint)
+            if (x < -200 * density || x > width + 2) return@forEachIndexed
+            // El primer pulso, del color de la selección y con línea entera; los otros, del de los marcadores
+            val color = if (mark.firstBeat) palette.select else palette.mark
+            if (mark.firstBeat) {
+                line.color = color
+                line.strokeWidth = density
+                canvas.drawLine(x, ruler, x, h, line)
+            } else {
+                dashed.color = color
+                dashed.strokeWidth = density
+                canvas.drawLine(x, ruler, x, h, dashed)
+            }
+            val text = if (mark.firstBeat) (if (mark.label.isEmpty()) "1" else "1 · ${mark.label}")
+            else mark.label.ifEmpty { "${i + 1}" }
+            val shown = TextUtils.ellipsize(text, TextPaint(label), 160 * density, TextUtils.TruncateAt.END).toString()
+            val boxWidth = label.measureText(shown) + 8 * density
+            fill.color = color
+            canvas.drawRect(x, ruler + density, x + boxWidth, ruler + flagHeight - density, fill)
+            label.color = palette.base
+            canvas.drawText(shown, x + 4 * density, ruler + flagHeight / 2 - (label.descent() + label.ascent()) / 2, label)
         }
-
-        // La posición
-        val x = xOf(position)
-        if (x in 0f..w.toFloat()) canvas.drawLine(x, 0f, x, h.toFloat(), playhead)
     }
 
     private fun drawRuler(canvas: Canvas, w: Int) {
-        // Una marca con su tiempo cada tantos segundos (1, 2, 5 × 10ⁿ), de modo que quepan las etiquetas
+        // Una marca con su tiempo cada tantos segundos (1, 2, 5 × 10ⁿ), de modo que quepan las etiquetas, y cuatro
+        // marcas menores entre una y otra
         val minimum = 70 * density * spp
         val power = 10.0.pow(floor(log10(minimum)))
         val step = listOf(1.0, 2.0, 5.0, 10.0).map { it * power }.first { it >= minimum }
+        line.color = palette.faint
+        line.strokeWidth = 1f
+        canvas.drawLine(0f, ruler - 1, w.toFloat(), ruler - 1, line)
+        label.color = palette.text
         var t = floor(start / step) * step
         val end = start + w * spp
-        while (t <= end) {
+        while (t <= end + step) {
             val x = xOf(t)
-            canvas.drawLine(x, ruler - 6 * density, x, ruler, tick)
-            canvas.drawText(TimeFormat.short(t, step), x + 3 * density, ruler - 8 * density, label)
+            canvas.drawLine(x, ruler - 6 * density, x, ruler - 1, line)
+            for (k in 1..4) {
+                val xm = xOf(t + k * step / 5)
+                canvas.drawLine(xm, ruler - 3 * density, xm, ruler - 1, line)
+            }
+            canvas.drawText(TimeFormat.short(t, step), x + 3 * density, -label.ascent() + 2 * density, label)
             t += step
         }
     }
