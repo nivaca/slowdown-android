@@ -5,6 +5,15 @@ Los cambios de Slowdown, la versión para Android de
 [GitHub](https://github.com/nivaca/slowdown-android) y
 [Codeberg](https://codeberg.org/nivaca/slowdown-android).
 
+## Sin publicar
+
+- En español, la fila de la velocidad y el volumen ya no se sale de la
+  pantalla («Velocidad» quedaba cortada y «Refuerzo» partido en dos): las
+  perillas y los botones de al lado son un poco más pequeños.
+- El idioma de la aplicación se puede elegir aparte del del teléfono, en
+  los ajustes de Android de la aplicación (inglés o español).
+- Capturas de pantalla para F-Droid, en inglés y en español.
+
 ## 1.0 — 2026-11-25
 
 La primera versión.

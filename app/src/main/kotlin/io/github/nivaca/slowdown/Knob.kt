@@ -169,6 +169,6 @@ class Knob(context: Context, attrs: AttributeSet? = null) : View(context, attrs)
     companion object {
         const val LOWEST = 240.0
         const val HIGHEST = -60.0
-        const val SIZE_DP = 60
+        const val SIZE_DP = 56
     }
 }

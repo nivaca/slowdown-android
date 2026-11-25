@@ -95,9 +95,9 @@
         <Button android:id="@+id/speeds" style="@style/SmallButton" android:text="@string/speeds" />
 
         <ImageView
-            android:layout_width="22dp"
-            android:layout_height="22dp"
-            android:layout_marginStart="10dp"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_marginStart="6dp"
             android:contentDescription="@string/volume"
             android:src="@drawable/ic_volume" />
         <io.github.nivaca.slowdown.Knob android:id="@+id/volume" android:layout_width="wrap_content"
@@ -106,6 +106,8 @@
             android:id="@+id/boost"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:textSize="13sp"
             android:text="@string/boost" />
     </LinearLayout>
 
