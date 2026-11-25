@@ -1,12 +1,19 @@
 {
   "title": "Slowdown for Android",
   "upload_type": "software",
-  "description": "<p>Plays audio slower or faster without changing its pitch, for practising music and learning it by ear. The Android version of py-slowdown.</p>",
   "creators": [
     {
       "name": "Vaughan, Nicolas",
       "affiliation": "Universidad de los Andes",
       "orcid": "0000-0002-2877-0539"
+    }
+  ],
+  "contributors": [
+    {
+      "name": "Vaughan, Nicolas",
+      "affiliation": "Universidad de los Andes",
+      "orcid": "0000-0002-2877-0539",
+      "type": "ProjectLeader"
     }
   ],
   "license": "gpl-3.0-or-later",
@@ -17,5 +24,14 @@
     "music",
     "Android",
     "slow down"
-  ]
+  ],
+  "languages": [
+    "eng",
+    "spa"
+  ],
+  "programming_language": [
+    "kotlin",
+    "c++"
+  ],
+  "development_status": "active"
 }
