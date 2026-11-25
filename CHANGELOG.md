@@ -5,7 +5,7 @@ All notable changes to Slowdown, the Android version of
 [GitHub](https://github.com/nivaca/slowdown-android) and
 [Codeberg](https://codeberg.org/nivaca/slowdown-android).
 
-## Unreleased
+## 1.0 — 2026-11-25
 
 The first version.
 

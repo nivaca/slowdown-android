@@ -1,0 +1,3 @@
+La primera versión.
+• Toca audio más lento o más rápido (de 0,25× a 3×) sin cambiar su altura, con el motor R3 de la biblioteca Rubber Band, como py-slowdown; a 1× el archivo suena tal cual, muestra por muestra.
+• Sube o baja la altura en semitonos y cents, con los formantes conservados si se pide; una perilla de volumen con Refuerzo (de ×1,2 a ×3, elegido en el menú).

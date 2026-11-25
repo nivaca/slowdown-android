@@ -6,7 +6,7 @@ Android phone. It is for practising music and learning it by ear. Nicolas
 Vaughan made it in November 2026, as the Android version of py-slowdown,
 his program for the desktop (Python and Qt): the engine of py-slowdown was
 translated into C++, and the window was written again for a phone;
-the current one is 0.1. Here I explain how it was made, in four stages.
+the current one is 1.0. Here I explain how it was made, in four stages.
 
 Slowdown is free software, under the GNU General Public License, version 3
 or later. It carries the Rubber Band Library 4.0.0, by Particular Programs

@@ -1,0 +1,4 @@
+The first version.
+• Plays audio slower or faster (0.25× to 3×) without changing its pitch, with the R3 engine of the Rubber Band Library, as py-slowdown; at 1× the file plays as it is, sample for sample.
+• Moves the pitch in semitones and cents, keeping the formants if asked; a volume knob with Boost (×1.2 to ×3, chosen in the menu).
+• The window of py-slowdown 1.3, for a phone: the waveform with its colours, the player's buttons, the knobs, and the panel of bookmarks and loops.
