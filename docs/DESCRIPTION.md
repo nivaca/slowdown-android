@@ -6,7 +6,7 @@ Android phone. It is for practising music and learning it by ear. Nicolas
 Vaughan made it in November 2026, as the Android version of py-slowdown,
 his program for the desktop (Python and Qt): the engine of py-slowdown was
 translated into C++, and the window was written again for a phone;
-the current one is 1.1. Here I explain how it was made, in four stages.
+the current one is 1.1. Here I explain how it was made, in five stages.
 
 Slowdown is free software, under the GNU General Public License, version 3
 or later. It carries the Rubber Band Library 4.0.0, by Particular Programs
@@ -170,10 +170,54 @@ release say the same, and a test checks that the list in the app, the texts
 and the documents agree.
 
 
+5. What was missing
+-------------------
+
+After the first two releases I took up what the phone still lacked, one
+thing at a time.
+
+The `.slx` could not leave the phone, although the READMEs said it
+travelled with the recording. Now it can be exported and loaded, and kept
+in a folder chosen with Android's folder picker, such as that of the
+music, beside each recording, as on the desktop; the app's own copy stays.
+The places where the `.slx` lives became an interface of their own
+(`SlxFolder`), with the app's folder and the chosen one behind it.
+
+Playing with the screen off needed a service in the foreground, with a
+media session and its notification. What plays moved out of the window,
+into `Playback`, so that the window can close while it plays and attach to
+it when it comes back; audio focus and unplugged headphones went with it.
+
+The count-in of py-slowdown came next, with its rules copied from
+`countin.py` (the tempo that follows the speed, tapping the tempo, the
+recording coming in on the nearest beat of its first beat); then the ways
+of hearing, its `hearing.py` in C++, with the same linear-phase filters,
+applied with Rubber Band's FFT; then the export of the audio, rendered
+apart in a thread, in WAV, or in M4A with Android's AAC encoder. FLAC, MP3
+and Opus, which py-slowdown also writes, are not there: Android cannot
+write a FLAC file, has no MP3 encoder, and its Opus encoder takes only
+48 kHz.
+
+`tools/check_reproducible.py` builds a release again from its tag, in
+another folder and without the key, and compares it with the APK on GitHub,
+entry by entry, as F-Droid would. Version 1.1 is reproducible.
+
+One thing failed. An AAC file is read at about ten times real time,
+because each buffer goes to Android's codec in another process and back. I
+split the file in four parts, each with its own codec, and the decoding
+went eight times faster; but the samples, compared with those of one
+codec, differed, and two runs of the parallel decoding differed from each
+other. Part of it was mine: duplicated file descriptors share their
+position, and the extractors moved each other's; with a file opened again
+for each part, the first part came out exact. The rest was not: with
+several codecs at once Android's service gave samples that changed from
+one run to the next, and at times it refused a second codec. So the AAC is
+read by one codec, as before.
+
 Testing
 -------
 
-There are 21 tests. Four are programs in C++ that test the
+There are 29 tests. Six are programs in C++ that test the
 engine compiled for the computer, run by CTest: the audio in memory (its
 chunks, reading across them, the peaks of the waveform), the renderer (the
 copy bit for bit at 1×; the length and the pitch of the stretched sound at
@@ -182,13 +226,18 @@ gap; a seek with its ramp; the waiting while it decodes; the count-in),
 the player with an output of test (pause, seek, the end, a slower speed,
 the loop, the count-in, the sleeping of the output) and the decoders (one
 second of A 440 in MP3, FLAC and WAV, its length and its pitch, and a 5.1
-WAV mixed down to stereo). Seventeen tests in Kotlin, run on the JVM, check the
+WAV mixed down to stereo), the ways of hearing (the kernels of the filters,
+the channels, the bass with and without, and that block after block gives
+the same as the whole filter at once), and the export (a valid WAV, the
+same samples at 1×, twice as long at 0.5×, a selection, and the filter's
+delay made up). Twenty-three tests in Kotlin, run on the JVM, check the
 `.slx` (that one written by py-slowdown is read, that what is written is
 read back, the numbers written as Python writes them, the names of the
 files and how the right one is found, the whole file repeated), the
 bookmarks exported as text, the format of the times and of the boost
 factors, that the licences in the app, in `LICENSES/` and in the documents
-agree, and how their texts are fitted to the screen. `tools/test.sh` runs both at once,
+agree, how their texts are fitted to the screen, the `.slx` in any folder,
+and the rules of the count-in. `tools/test.sh` runs both at once,
 each test in a process of its own.
 
 The tests of the engine were also compiled for the phone and run there,
@@ -196,10 +245,15 @@ and two small programs measured on it the speed of Rubber Band and of the
 decoders. The app itself was tried on the phone: opening a file with the
 picker of Android, playing it, changing the speed and the pitch while it
 plays (the sound system counted no underrun), selecting a passage and
-repeating it, and its `.slx`, written when leaving the app.
+repeating it, and its `.slx`, written when leaving the app. Later, on the
+same phone: the `.slx` written beside the recording in the Music folder and
+read from there first; playing on with the screen off and in another app,
+and the media keys; the count-in, its beat on the waveform and its dialog;
+the ways of hearing at 0.6× with the pitch raised (no underrun); and an
+export to WAV and to M4A, checked with ffprobe and decoded by FFmpeg.
 
 Without the libraries in `third_party/`, the texts of `LICENSES/` and the
-documentation, Slowdown has 72 files of its own (code, layouts, texts,
-build files, the store texts, tests and tools) with about 6,300 lines: 1,870
-of C++ in the engine, 2,020 of Kotlin in the window, 730 in the tests and
-680 in the tools of the releases.
+documentation, Slowdown has 89 files of its own (code, layouts, texts,
+build files, the store texts, tests and tools) with about 8,300 lines: 2,490
+of C++ in the engine, 2,960 of Kotlin in the window, 1,000 in the tests and
+770 in the tools.

@@ -6,19 +6,19 @@ Slowdown toca audio más lento o más rápido sin cambiar su altura, en un telé
 
 Debía conservar lo esencial de py-slowdown: el estiramiento de Rubber Band con su motor R3, la copia exacta del archivo a 1×, el cambio de velocidad y de altura (semitonos y cents) mientras suena, la selección que se repite sin hueco, los marcadores, los bucles con nombre y el archivo `.slx` en que se guarda cómo se tocó cada grabación. Ese archivo debía ser el mismo del escritorio, para que una grabación pase del teléfono al ordenador y vuelva con sus marcadores. La interfaz tenía que hacerse para el dedo (tocar, arrastrar, pellizcar, mantener) sin perder el teclado ni el pedal, y hablar inglés y español.
 
-Quedan para después la cuenta previa, las maneras de oír (un canal, sin el centro, los graves), la exportación del audio y tocar con la pantalla apagada.
+Después de las primeras versiones se añadió lo que faltaba de py-slowdown: el `.slx` fuera del teléfono (exportarlo, cargarlo y guardarlo junto a la grabación), tocar con la pantalla apagada, la cuenta previa, las maneras de oír y la exportación del audio. Del ordenador quedan fuera el FLAC, el MP3 y el Opus al exportar, y el ecualizador de sus últimas versiones.
 
 ## Diseño
 
 El motor está en C++ y la ventana en Kotlin. El motor tiene cuatro partes. `audio.cpp` guarda el audio decodificado en memoria, en trozos de 65 536 cuadros que no se mueven una vez escritos, con el mínimo y el máximo de cada 256 cuadros para la onda. `engine.cpp` es el motor de py-slowdown (`engine.py`) traducido casi línea por línea: Renderer hace el audio de salida por bloques, y Player lo lleva a la salida con un hilo productor y una cola de 0,15 segundos. `output.cpp` es la salida de AAudio. `decoder.cpp` y `codec.cpp` decodifican el archivo.
 
-La ventana (`MainActivity.kt`) une los mandos con el motor, por medio de `Engine.kt` y de una sola biblioteca nativa, y está ordenada como la de py-slowdown 1.3: la onda; los botones de la reproducción (con Detener y Repetir, que sin selección repite el archivo entero) y el tiempo; las perillas de la velocidad, el volumen (con el Refuerzo, que multiplica el sonido por 1,8 o por lo que se elija en el menú, de ×1,2 a ×3, como en la configuración de py-slowdown) y la altura, y el panel de los marcadores y los bucles, con dos pestañas, una tabla y los botones Añadir, Quitar y Exportar…. `WaveformView.kt` dibuja la onda, la regla, la selección y los marcadores con los colores de py-slowdown (`Palette.kt`), claros u oscuros según el teléfono. `Knob.kt` es la perilla de py-slowdown; con el dedo se gira arrastrando hacia arriba o a la derecha, porque una perilla pequeña queda bajo el dedo, y vuelve a su valor con un doble toque. `Sidecar.kt` lee y escribe el `.slx`.
+La ventana (`MainActivity.kt`) une los mandos con el motor, por medio de `Engine.kt` y de una sola biblioteca nativa, y está ordenada como la de py-slowdown 1.3: la onda; los botones de la reproducción (con Detener y Repetir, que sin selección repite el archivo entero) y el tiempo; las perillas de la velocidad, el volumen (con el Refuerzo, que multiplica el sonido por 1,8 o por lo que se elija en el menú, de ×1,2 a ×3, como en la configuración de py-slowdown) y la altura, y el panel de los marcadores y los bucles, con dos pestañas, una tabla y los botones Añadir, Quitar y Exportar…. `WaveformView.kt` dibuja la onda, la regla, la selección y los marcadores con los colores de py-slowdown (`Palette.kt`), claros u oscuros según el teléfono. `Knob.kt` es la perilla de py-slowdown; con el dedo se gira arrastrando hacia arriba o a la derecha, porque una perilla pequeña queda bajo el dedo, y vuelve a su valor con un doble toque. `Sidecar.kt` lee y escribe el `.slx`, en cualquier `SlxFolder`: la carpeta de la aplicación o una elegida por el usuario (`FolderTree.kt`). `Playback.kt` guarda lo que suena fuera de la ventana, y `PlaybackService.kt` es el servicio de reproducción, con su sesión de medios y su notificación. `CountInRules.kt` tiene las reglas de la cuenta previa; `hearing.cpp`, las maneras de oír; `exporter.cpp`, la exportación.
 
 Se prefirió C++ a conservar Python porque PortAudio, la salida de sonido de py-slowdown, no existe en Android, y porque un hilo de Python que alimenta la salida cada pocos milisegundos es un riesgo en un teléfono. La ventana usa los controles de Android, sin Jetpack Compose ni otras bibliotecas: el programa no depende de nada fuera de Android y de lo que trae en `third_party/`.
 
 ## Implementación
 
-Sin las bibliotecas de `third_party/`, los textos de `LICENSES/` ni la documentación, el programa tiene 72 archivos propios (código, disposiciones, textos, archivos de compilación, los textos de las tiendas, pruebas y herramientas), con unas 6300 líneas: 1870 de C++ en el motor, 2020 de Kotlin en la ventana, 730 en las pruebas y 680 en las herramientas de las versiones. Se compila con Gradle 9.9, el complemento de Android 9.5, el NDK 29 y CMake 3.31.
+Sin las bibliotecas de `third_party/`, los textos de `LICENSES/` ni la documentación, el programa tiene 89 archivos propios (código, disposiciones, textos, archivos de compilación, los textos de las tiendas, pruebas y herramientas), con unas 8300 líneas: 2490 de C++ en el motor, 2960 de Kotlin en la ventana, 1000 en las pruebas y 770 en las herramientas. Se compila con Gradle 9.9, el complemento de Android 9.5, el NDK 29 y CMake 3.31.
 
 ### Rubber Band
 
@@ -28,19 +28,23 @@ Rubber Band 4.0.0 se compila desde su archivo único (`single/RubberBandSingle.c
 
 Los códecs de Android resultaron lentos: cada búfer va y vuelve de otro proceso, y en este teléfono eso deja un MP3 en unas 13 veces el tiempo real; un FLAC, que el extractor parte en decenas de miles de trozos, quedaba por debajo del tiempo real, y además a medias, porque su códec decía dar muestras en coma flotante y las daba en 16 bits. Por eso MP3, FLAC, WAV y AIFF se decodifican en la aplicación misma, con minimp3, dr_flac y dr_wav (un encabezado cada uno, fijados en un commit de meses antes): una canción de cinco minutos en medio segundo. El formato se reconoce por los primeros bytes. Lo demás (AAC, Opus, Vorbis, el sonido de un video) va a los códecs de Android, y su onda se completa mientras ya suena.
 
+### Lo que se añadió después
+
+La cuenta previa copia las reglas de `countin.py`; las maneras de oír pasan `hearing.py` a C++, con los mismos filtros de fase lineal, aplicados con la FFT de Rubber Band. La exportación hace el audio aparte, en un hilo, y lo escribe en WAV o, con el codificador AAC de Android, en M4A. Se probó decodificar un AAC en cuatro trozos a la vez, y fue ocho veces más rápido; pero con varios a la vez el servicio de códecs de Android daba muestras que cambiaban de una vez a otra, y a veces negaba un segundo códec, así que el AAC sigue con un solo códec.
+
 ### La salida
 
 AAudio pide los cuadros a Player. Tras medio segundo sin sonar, el flujo se pausa para no gastar batería; si la salida cambia (auriculares, Bluetooth), se abre de nuevo. La posición que se muestra descuenta la latencia de la salida, medida con su marca de tiempo.
 
 ## Validación
 
-Hay veintiuna pruebas. Cuatro programas en C++ prueban el motor compilado para el ordenador: el audio en memoria; Renderer (la copia exacta a 1×, la duración y la altura del sonido estirado a tres velocidades y en las tres calidades, el bucle sin hueco, los saltos, la cuenta previa); Player con una salida de prueba, y los decodificadores, con un segundo de La 440 en MP3, FLAC y WAV y un WAV 5.1. Diecisiete pruebas en Kotlin comprueban el `.slx` (entre ellas, que se lee uno escrito por py-slowdown), la exportación de los marcadores, el formato de los tiempos y de los factores del refuerzo, que las licencias de la aplicación, de `LICENSES/` y de los documentos coincidan, y cómo se ajustan sus textos a la pantalla. `tools/test.sh` las corre todas en paralelo, cada una en su proceso.
+Hay veintinueve pruebas. Seis programas en C++ prueban el motor compilado para el ordenador: el audio en memoria; Renderer (la copia exacta a 1×, la duración y la altura del sonido estirado a tres velocidades y en las tres calidades, el bucle sin hueco, los saltos, la cuenta previa); Player con una salida de prueba; los decodificadores, con un segundo de La 440 en MP3, FLAC y WAV y un WAV 5.1; las maneras de oír, y la exportación. Veintitrés pruebas en Kotlin comprueban el `.slx` (entre ellas, que se lee uno escrito por py-slowdown), la exportación de los marcadores, el formato de los tiempos y de los factores del refuerzo, que las licencias de la aplicación, de `LICENSES/` y de los documentos coincidan, cómo se ajustan sus textos a la pantalla, el `.slx` en cualquier carpeta y las reglas de la cuenta previa. `tools/check_reproducible.py` compila una versión de nuevo desde su etiqueta y la compara con el APK publicado, como F-Droid; la 1.1 es reproducible. `tools/test.sh` las corre todas en paralelo, cada una en su proceso.
 
 Las pruebas del motor se compilaron también para el teléfono y pasan allí. La aplicación se probó en un Moto g55 con Android 16: abrir con el selector de Android, tocar, cambiar la velocidad y la altura mientras suena (el sistema de sonido no contó ningún vacío), seleccionar y repetir, y el `.slx` escrito al salir.
 
 ## Plataforma
 
-Necesita Android 12 o posterior, en un teléfono ARM de 64 bits. No usa internet ni pide permisos: los archivos se abren con el selector de Android, que da acceso a cada uno. Lee MP3, FLAC, WAV y AIFF por sí mismo, y lo demás que Android decodifique.
+Necesita Android 12 o posterior, en un teléfono ARM de 64 bits. No usa internet. Sus únicos permisos son los del servicio de reproducción en primer plano, que Android concede sin preguntar; los archivos se abren con el selector de Android, que da acceso a cada uno, y la carpeta de los `.slx`, si se elige, con el selector de carpetas. Lee MP3, FLAC, WAV y AIFF por sí mismo, y lo demás que Android decodifique.
 
 ### Licencias
 
@@ -53,6 +57,6 @@ Fue desarrollado en Fedora 45, con el SDK de Android de línea de órdenes (sin 
     ./gradlew installDebug
     adb shell am start -n io.github.nivaca.slowdown/.MainActivity
 
-Los ajustes (la calidad, la longitud del salto, el último archivo) se guardan en las preferencias de la aplicación; los `.slx`, en su carpeta `files/slx`.
+Los ajustes (la calidad, la longitud del salto, el último archivo) se guardan en las preferencias de la aplicación; los `.slx`, en su carpeta `files/slx` y, si se eligió una, también en ella.
 
 Contacto: nicolasvaughan@proton.me
