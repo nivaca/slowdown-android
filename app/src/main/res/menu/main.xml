@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/open" android:icon="@drawable/ic_open" android:title="@string/open"
+        android:showAsAction="always" />
+    <item android:id="@+id/formants" android:checkable="true" android:title="@string/keep_formants" />
+    <item android:id="@+id/quality" android:title="@string/quality">
+        <menu>
+            <group android:checkableBehavior="single">
+                <item android:id="@+id/quality_high" android:title="@string/quality_high" />
+                <item android:id="@+id/quality_light" android:title="@string/quality_light" />
+                <item android:id="@+id/quality_r2" android:title="@string/quality_r2" />
+            </group>
+        </menu>
+    </item>
+    <item android:id="@+id/skip" android:title="@string/skip_length" />
+    <item android:id="@+id/save" android:title="@string/save_slx" />
+    <item android:id="@+id/close" android:title="@string/close" />
+    <item android:id="@+id/about" android:title="@string/about" />
+</menu>
