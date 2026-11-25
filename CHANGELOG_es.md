@@ -5,7 +5,7 @@ Los cambios de Slowdown, la versión para Android de
 [GitHub](https://github.com/nivaca/slowdown-android) y
 [Codeberg](https://codeberg.org/nivaca/slowdown-android).
 
-## Sin publicar
+## 1.2 — 2026-11-25
 
 - El `.slx` ya puede salir del teléfono, y entrar: menú > Exportar el .slx
   (con el nombre que le da py-slowdown, canción.slx), y Cargar un .slx, que
