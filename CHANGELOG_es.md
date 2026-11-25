@@ -5,6 +5,16 @@ Los cambios de Slowdown, la versión para Android de
 [GitHub](https://github.com/nivaca/slowdown-android) y
 [Codeberg](https://codeberg.org/nivaca/slowdown-android).
 
+## Sin publicar
+
+- El `.slx` ya puede salir del teléfono, y entrar: menú > Exportar el .slx
+  (con el nombre que le da py-slowdown, canción.slx), y Cargar un .slx, que
+  toma los marcadores, los bucles y los ajustes de un `.slx` hecho en el
+  ordenador (pregunta antes si es de otra grabación). Menú > Carpeta de los
+  .slx puede guardarlos en una carpeta elegida, como la de la música, para
+  que cada uno quede junto a su grabación, como en el ordenador, y viaje con
+  ella; la copia de la aplicación se queda también.
+
 ## 1.1 — 2026-11-25
 
 - En español, la fila de la velocidad y el volumen ya no se sale de la

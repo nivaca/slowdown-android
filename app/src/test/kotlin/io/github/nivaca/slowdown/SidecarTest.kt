@@ -139,6 +139,33 @@ class SidecarTest {
         assertEquals(1.8, MainActivity.BOOST, 0.0)
     }
 
+    // Una carpeta en memoria, como la que elige el usuario (TreeFolder) en el teléfono
+    private class MemoryFolder : SlxFolder {
+        val files = HashMap<String, String>()
+        override fun read(name: String) = files[name]
+        override fun write(name: String, text: String) { files[name] = text }
+        override fun exists(name: String) = name in files
+    }
+
+    @Test
+    fun anyFolderWillDo() {
+        val folder = MemoryFolder()
+        val source = Source("content://tree/song.mp3", "song.mp3", 42)
+        assertEquals("song.slx", Sidecar.save(Session(speed = 0.65), source, folder, "1.0"))
+        assertEquals(0.65, Sidecar.load(source, folder)!!.speed, 0.0)
+        // El de py-slowdown, que vino con la grabación: por su nombre (su ruta es la del ordenador)
+        folder.files.clear()
+        folder.files["song.slx"] = desktop.replace("canción.mp3", "song.mp3").replace("4861932", "42")
+        assertEquals(0.75, Sidecar.load(source, folder)!!.speed, 0.0)
+        assertEquals("song.slx", Sidecar.target(source, folder))
+    }
+
+    @Test
+    fun theOwnerOfASlx() {
+        assertEquals(Triple("/home/x/canción.mp3", "canción.mp3", 4861932L), Sidecar.owner(desktop))
+        assertNull(Sidecar.owner("<other/>"))
+    }
+
     @Test
     fun notOneOfOurs() {
         val file = File(folder, "x.slx").apply { writeText("<other/>") }

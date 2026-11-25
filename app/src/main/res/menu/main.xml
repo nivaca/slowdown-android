@@ -19,6 +19,9 @@
     </item>
     <item android:id="@+id/skip" android:title="@string/skip_length" />
     <item android:id="@+id/save" android:title="@string/save_slx" />
+    <item android:id="@+id/export_slx" android:title="@string/export_slx" />
+    <item android:id="@+id/import_slx" android:title="@string/import_slx" />
+    <item android:id="@+id/slx_folder" android:title="@string/slx_folder" />
     <item android:id="@+id/close" android:title="@string/close" />
     <item android:id="@+id/licenses" android:title="@string/licenses" />
     <item android:id="@+id/about" android:title="@string/about" />

@@ -74,7 +74,10 @@ What it does
   as a text file, as in py-slowdown.
 - Remembers, for each file, its bookmarks, its loops, the point where it was
   left and how it was played, in a `.slx` file like those of py-slowdown, and
-  reopens the last file when it starts.
+  reopens the last file when it starts. The `.slx` can be exported and
+  loaded (menu), and kept in a folder chosen, such as that of the music, so
+  that each one is beside its recording and travels with it to the
+  computer and back.
 - A keyboard or a foot pedal that sends keys works with the keys of
   py-slowdown (Space, ←/→, ↑/↓, B, I, O, L…), and the play button of
   headphones plays and pauses.

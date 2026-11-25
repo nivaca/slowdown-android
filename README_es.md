@@ -77,7 +77,10 @@ Qué hace
   exportar como archivo de texto, como en py-slowdown.
 - Recuerda, de cada archivo, sus marcadores, sus bucles, el punto donde se
   dejó y cómo se tocó, en un archivo `.slx` como los de py-slowdown, y abre
-  otra vez el último archivo al empezar.
+  otra vez el último archivo al empezar. El `.slx` se puede exportar y
+  cargar (menú), y guardar en una carpeta elegida, como la de la música,
+  para que cada uno quede junto a su grabación y viaje con ella al
+  ordenador y de vuelta.
 - Un teclado, o un pedal que mande teclas, funciona con las teclas de
   py-slowdown (Espacio, ←/→, ↑/↓, B, I, O, L…), y el botón de los
   auriculares toca y pausa.

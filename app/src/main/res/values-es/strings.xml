@@ -79,4 +79,12 @@ El estiramiento lo hace la biblioteca Rubber Band, © Particular Programs Ltd. (
     <string name="volume_home">un doble toque lo devuelve a 100 %%</string>
     <string name="licenses">Licencias</string>
     <string name="licenses_intro">Slowdown es software libre, bajo la Licencia Pública General de GNU, versión 3 o posterior. Lleva el software de abajo; toque uno para leer su licencia.</string>
+    <string name="export_slx">Exportar el .slx…</string>
+    <string name="import_slx">Cargar un .slx…</string>
+    <string name="slx_folder">Carpeta de los .slx…</string>
+    <string name="slx_in_app">Solo en la aplicación</string>
+    <string name="slx_choose">En una carpeta, junto a las grabaciones…</string>
+    <string name="not_slx">%1$s no es un .slx de py-slowdown.</string>
+    <string name="slx_of_other">Este .slx es de %1$s. ¿Usarlo para %2$s?</string>
+    <string name="slx_folder_title">Dónde se guardan los .slx</string>
 </resources>

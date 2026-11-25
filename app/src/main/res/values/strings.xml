@@ -80,4 +80,12 @@ The stretching is done by the Rubber Band Library, © Particular Programs Ltd. (
     <string name="volume_home">a double tap goes back to 100%%</string>
     <string name="licenses">Licences</string>
     <string name="licenses_intro">Slowdown is free software, under the GNU General Public License, version 3 or later. It carries the software below; touch one to read its licence.</string>
+    <string name="export_slx">Export the .slx…</string>
+    <string name="import_slx">Load a .slx…</string>
+    <string name="slx_folder">Folder of the .slx files…</string>
+    <string name="slx_in_app">In the app only</string>
+    <string name="slx_choose">In a folder, beside the recordings…</string>
+    <string name="not_slx">%1$s is not a .slx of py-slowdown.</string>
+    <string name="slx_of_other">This .slx is of %1$s. Use it for %2$s?</string>
+    <string name="slx_folder_title">Where the .slx files are kept</string>
 </resources>

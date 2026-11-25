@@ -18,7 +18,9 @@ import java.security.MessageDigest
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import java.io.StringReader
 import javax.xml.parsers.DocumentBuilderFactory
+import org.xml.sax.InputSource
 import org.w3c.dom.Element
 
 data class Bookmark(var time: Double, var label: String = "", var firstBeat: Boolean = false)
@@ -51,51 +53,54 @@ object Sidecar {
     const val EXTENSION = ".slx"
 
     /** The names its file can have, in order: canción.slx, canción.mp3.slx, canción.mp3.LETTERS.slx. */
-    fun candidates(source: Source, folder: File): List<File> {
+    fun names(source: Source): List<String> {
         val stem = source.name.substringBeforeLast('.', source.name)
         val digest = MessageDigest.getInstance("SHA-256").digest(source.path.toByteArray())
         val letters = digest.joinToString("") { "%02x".format(it) }.take(8)
-        return listOf(
-            File(folder, "$stem$EXTENSION"),
-            File(folder, "${source.name}$EXTENSION"),
-            File(folder, "${source.name}.$letters$EXTENSION"),
-        )
+        return listOf("$stem$EXTENSION", "${source.name}$EXTENSION", "${source.name}.$letters$EXTENSION")
     }
 
-    private fun owner(file: File): Triple<String, String, Long>? {
-        val root = parse(file) ?: return null
+    fun candidates(source: Source, folder: File): List<File> = names(source).map { File(folder, it) }
+
+    /** (address, name, size) of the audio file that the .slx TEXT is of, or null. */
+    fun owner(text: String): Triple<String, String, Long>? {
+        val root = parse(text) ?: return null
         val element = child(root, "file") ?: return null
         return Triple(element.getAttribute("path"), element.getAttribute("name"),
             element.getAttribute("size").toLongOrNull() ?: -1)
     }
 
-    /** The .slx of SOURCE in FOLDER, if there is one: the one with its address, or else one with its name (and
-     * its size, if both are known). */
-    fun find(source: Source, folder: File): File? {
-        var byName: File? = null
-        for (file in candidates(source, folder)) {
-            val (path, name, size) = (if (file.isFile) owner(file) else null) ?: continue
-            if (path == source.path) return file
-            if (name == source.name && byName == null && (size < 0 || source.size < 0 || size == source.size)) {
-                byName = file  // (el mismo archivo, que llegó por otro camino, o el de py-slowdown)
+    /** The name of the .slx of SOURCE in FOLDER, if there is one: the one with its address, or else one with its
+     * name (and its size, if both are known). */
+    fun find(source: Source, folder: SlxFolder): String? {
+        var byName: String? = null
+        for (name in names(source)) {
+            val (path, audio, size) = folder.read(name)?.let { owner(it) } ?: continue
+            if (path == source.path) return name
+            if (audio == source.name && byName == null && (size < 0 || source.size < 0 || size == source.size)) {
+                byName = name  // (el mismo archivo, que llegó por otro camino, o el de py-slowdown)
             }
         }
         return byName
     }
 
-    /** Where to write the .slx of SOURCE: its own, or the first name that is free. */
-    fun target(source: Source, folder: File): File {
+    fun find(source: Source, folder: File): File? = find(source, FileFolder(folder))?.let { File(folder, it) }
+
+    /** The name to write the .slx of SOURCE with: its own, or the first name that is free. */
+    fun target(source: Source, folder: SlxFolder): String {
         find(source, folder)?.let { return it }
-        val all = candidates(source, folder)
-        return all.firstOrNull { !it.exists() } ?: all.last()
+        val all = names(source)
+        return all.firstOrNull { !folder.exists(it) } ?: all.last()
     }
 
-    fun load(source: Source, folder: File): Session? = find(source, folder)?.let { read(it) }
+    fun load(source: Source, folder: SlxFolder): Session? = find(source, folder)?.let { name -> folder.read(name)?.let { read(it) } }
 
-    private fun parse(file: File): Element? = try {
+    fun load(source: Source, folder: File): Session? = load(source, FileFolder(folder))
+
+    private fun parse(text: String): Element? = try {
         val factory = DocumentBuilderFactory.newInstance()
         factory.isExpandEntityReferences = false
-        val root = factory.newDocumentBuilder().parse(file).documentElement
+        val root = factory.newDocumentBuilder().parse(InputSource(StringReader(text))).documentElement
         if (root.tagName == "py-slowdown") root else null
     } catch (_: Exception) {
         null
@@ -125,8 +130,11 @@ object Sidecar {
         element != null && element.getAttribute(name).lowercase() in setOf("true", "1", "yes")
 
     /** What the file keeps, or null if it cannot be read (or is not one of py-slowdown). */
-    fun read(file: File): Session? {
-        val root = parse(file) ?: return null
+    fun read(file: File): Session? = try { read(file.readText()) } catch (_: java.io.IOException) { null }
+
+    /** What the .slx TEXT keeps, or null if it is not one of py-slowdown. */
+    fun read(text: String): Session? {
+        val root = parse(text) ?: return null
         val session = Session(position = maxOf(0.0, number(child(root, "position"), "seconds", 0.0)))
         val playback = child(root, "playback")
         session.speed = number(playback, "speed", 1.0)
@@ -229,16 +237,39 @@ object Sidecar {
         return w.toString()
     }
 
-    /** Write the .slx of SOURCE in FOLDER (entero o nada); its file. */
-    fun save(session: Session, source: Source, folder: File, version: String): File {
-        val file = target(source, folder)
-        folder.mkdirs()
-        val temporary = File(folder, file.name + ".tmp")
-        temporary.writeText(format(session, source, version), Charsets.UTF_8)
-        if (!temporary.renameTo(file)) {
-            temporary.delete()
-            throw java.io.IOException("cannot write ${file.path}")
-        }
-        return file
+    /** Write the .slx of SOURCE in FOLDER; the name it got. */
+    fun save(session: Session, source: Source, folder: SlxFolder, version: String): String {
+        val name = target(source, folder)
+        folder.write(name, format(session, source, version))
+        return name
     }
+
+    fun save(session: Session, source: Source, folder: File, version: String): File =
+        File(folder, save(session, source, FileFolder(folder), version))
+}
+
+/** Where the .slx files are kept: the app's own folder, or one that the user chose (FolderTree.kt). */
+interface SlxFolder {
+    fun read(name: String): String?
+    fun write(name: String, text: String)
+    fun exists(name: String): Boolean
+}
+
+/** A folder of the file system. */
+class FileFolder(private val dir: File) : SlxFolder {
+    override fun read(name: String): String? =
+        File(dir, name).takeIf { it.isFile }?.let { try { it.readText() } catch (_: java.io.IOException) { null } }
+
+    override fun write(name: String, text: String) {
+        // (entero o nada, aunque la aplicación muera mientras escribe)
+        dir.mkdirs()
+        val temporary = File(dir, "$name.tmp")
+        temporary.writeText(text, Charsets.UTF_8)
+        if (!temporary.renameTo(File(dir, name))) {
+            temporary.delete()
+            throw java.io.IOException("cannot write ${File(dir, name).path}")
+        }
+    }
+
+    override fun exists(name: String) = File(dir, name).exists()
 }

@@ -91,8 +91,17 @@ class MainActivity : Activity(), WaveformView.Listener {
     private var showingLoops = false
     private var chosen = -1  // la fila elegida de la tabla
 
-    // La carpeta de los .slx, dentro de la aplicación
+    // La carpeta de los .slx, dentro de la aplicación; y, si se eligió, otra (la de la música, por ejemplo), que
+    // se lee primero y se escribe también
     private val slxFolder by lazy { File(filesDir, "slx") }
+
+    private fun chosenFolder(): TreeFolder? {
+        val tree = prefs.getString("slx_tree", null)?.let(Uri::parse) ?: return null
+        val allowed = contentResolver.persistedUriPermissions.any { it.uri == tree && it.isWritePermission }
+        return if (allowed) TreeFolder(contentResolver, tree) else null
+    }
+
+    private fun stores(): List<SlxFolder> = listOfNotNull(chosenFolder(), FileFolder(slxFolder))
 
     private val version by lazy { packageManager.getPackageInfo(packageName, 0).versionName ?: "" }
 
@@ -350,6 +359,14 @@ class MainActivity : Activity(), WaveformView.Listener {
                 open(target)
             }
             EXPORT -> writeBookmarks(target)
+            EXPORT_SLX -> writeSlx(target)
+            IMPORT_SLX -> readSlx(target)
+            TREE -> {
+                contentResolver.takePersistableUriPermission(target,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                prefs.edit().putString("slx_tree", target.toString()).apply()
+                save(announce = true)
+            }
         }
     }
 
@@ -388,7 +405,9 @@ class MainActivity : Activity(), WaveformView.Listener {
             } catch (e: Exception) {
                 e.message ?: e.javaClass.simpleName
             }
-            val kept = try { Sidecar.load(described, slxFolder) } catch (_: Exception) { null }
+            val kept = stores().firstNotNullOfOrNull { folder ->
+                try { Sidecar.load(described, folder) } catch (_: Exception) { null }
+            }
             handler.post {
                 opening = false
                 if (error != null) {
@@ -471,12 +490,17 @@ class MainActivity : Activity(), WaveformView.Listener {
         val source = source ?: return
         if (!loaded) return
         session.position = Engine.position()
-        try {
-            val file = Sidecar.save(session, source, slxFolder, version)
-            if (announce) Toast.makeText(this, getString(R.string.saved, file.name), Toast.LENGTH_SHORT).show()
-        } catch (e: Exception) {
-            Toast.makeText(this, e.message ?: e.toString(), Toast.LENGTH_LONG).show()
+        // En la carpeta elegida, si la hay, y siempre en la de la aplicación
+        var shown: String? = null
+        for (folder in stores()) {
+            try {
+                val name = Sidecar.save(session, source, folder, version)
+                if (shown == null) shown = if (folder is TreeFolder) "${folder.label()}/$name" else name
+            } catch (e: Exception) {
+                Toast.makeText(this, e.message ?: e.toString(), Toast.LENGTH_LONG).show()
+            }
         }
+        if (announce && shown != null) Toast.makeText(this, getString(R.string.saved, shown), Toast.LENGTH_SHORT).show()
     }
 
     // --- tocar
@@ -900,7 +924,7 @@ class MainActivity : Activity(), WaveformView.Listener {
             Engine.QUALITY_R2 -> R.id.quality_r2
             else -> R.id.quality_high
         }).isChecked = true
-        for (id in listOf(R.id.save, R.id.close)) menu.findItem(id).isEnabled = loaded
+        for (id in listOf(R.id.save, R.id.close, R.id.export_slx, R.id.import_slx)) menu.findItem(id).isEnabled = loaded
         // El refuerzo: ×1,2 … ×3, el de ahora marcado
         val boosts = menu.findItem(R.id.boost_factor).subMenu ?: return
         if (boosts.size() == 0) {
@@ -947,6 +971,9 @@ class MainActivity : Activity(), WaveformView.Listener {
             R.id.save -> save(announce = true)
             R.id.close -> closeFile()
             R.id.licenses -> showLicenses()
+            R.id.export_slx -> exportSlx()
+            R.id.import_slx -> importSlx()
+            R.id.slx_folder -> slxFolderDialog()
             R.id.about -> AlertDialog.Builder(this)
                 .setTitle(R.string.about)
                 .setMessage(getString(R.string.about_text, version))
@@ -955,6 +982,93 @@ class MainActivity : Activity(), WaveformView.Listener {
             else -> return super.onOptionsItemSelected(item)
         }
         return true
+    }
+
+    // --- el .slx fuera de la aplicación: exportarlo, cargar uno, y la carpeta donde se guardan
+
+    private fun exportSlx() {
+        val source = source ?: return
+        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = TreeFolder.MIME
+            putExtra(Intent.EXTRA_TITLE, Sidecar.names(source).first())  // (canción.slx, como en py-slowdown)
+        }
+        @Suppress("DEPRECATION")
+        startActivityForResult(intent, EXPORT_SLX)
+    }
+
+    private fun writeSlx(target: Uri) {
+        val source = source ?: return
+        session.position = Engine.position()
+        try {
+            contentResolver.openOutputStream(target, "wt")?.use {
+                it.write(Sidecar.format(session, source, version).toByteArray(Charsets.UTF_8))
+            }
+            Toast.makeText(this, getString(R.string.saved, describe(target).name), Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(this, e.message ?: e.toString(), Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun importSlx() {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "*/*"
+        }
+        @Suppress("DEPRECATION")
+        startActivityForResult(intent, IMPORT_SLX)
+    }
+
+    private fun readSlx(target: Uri) {
+        val source = source ?: return
+        val text = try {
+            contentResolver.openInputStream(target)?.use { it.readBytes().toString(Charsets.UTF_8) }
+        } catch (_: Exception) {
+            null
+        }
+        val kept = text?.let { Sidecar.read(it) }
+        if (kept == null) {
+            Toast.makeText(this, getString(R.string.not_slx, describe(target).name), Toast.LENGTH_LONG).show()
+            return
+        }
+        val apply = {
+            loaded(kept)
+            save(announce = true)
+        }
+        // Si es de otra grabación (por su nombre), se pregunta antes
+        val of = Sidecar.owner(text)?.second.orEmpty()
+        if (of.isEmpty() || of == source.name) apply()
+        else AlertDialog.Builder(this)
+            .setMessage(getString(R.string.slx_of_other, of, source.name))
+            .setPositiveButton(R.string.ok) { _, _ -> apply() }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun slxFolderDialog() {
+        val chosen = chosenFolder()
+        val items = arrayOf(getString(R.string.slx_in_app),
+            getString(R.string.slx_choose) + (chosen?.let { " (${it.label()})" } ?: ""))
+        AlertDialog.Builder(this)
+            .setTitle(R.string.slx_folder_title)
+            .setSingleChoiceItems(items, if (chosen == null) 0 else 1) { dialog, which ->
+                dialog.dismiss()
+                if (which == 0) {
+                    // (y deja el permiso sobre la carpeta, que ya no hace falta)
+                    prefs.getString("slx_tree", null)?.let { tree ->
+                        try {
+                            contentResolver.releasePersistableUriPermission(Uri.parse(tree),
+                                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                        } catch (_: SecurityException) {
+                        }
+                    }
+                    prefs.edit().remove("slx_tree").apply()
+                } else {
+                    @Suppress("DEPRECATION")
+                    startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT_TREE), TREE)
+                }
+            }
+            .show()
     }
 
     // --- las licencias: lo que lleva el APK, y el texto de cada una (de sus assets)
@@ -1092,6 +1206,9 @@ class MainActivity : Activity(), WaveformView.Listener {
     companion object {
         private const val PICK = 1
         private const val EXPORT = 2
+        private const val EXPORT_SLX = 3
+        private const val IMPORT_SLX = 4
+        private const val TREE = 5
         const val SPEED_STEP = 0.05
         const val NORMAL_VOLUME = 100  // por ciento: el sonido de la grabación, lo más que da la perilla
         val BOOSTS = listOf(1.2, 1.5, 1.8, 2.0, 2.5, 3.0)  // por cuánto puede multiplicar el sonido el refuerzo
