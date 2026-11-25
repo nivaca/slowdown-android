@@ -70,6 +70,13 @@ SUMS = os.path.join('dist', 'SHA256SUMS')
 # gets the new APK (its tools/update.py checks it and publishes the site).
 FDROID_REPO = os.path.join(os.path.dirname(ROOT), 'fdroid-repo')
 PENDING = {'CHANGELOG.md': 'Unreleased', 'CHANGELOG_es.md': 'Sin publicar'}
+# Where the version is written in docs/ (the phrase may be split across lines)
+DESCRIPTION_VERSION = r'the\s+current\s+one\s+is\s+[\d.]+\.'
+DESCRIPCION_VERSION = r'^# Slowdown [\d.]+: descripción'
+# Lo que edit() reescribe: si algo no está, se detiene antes de tocar nada
+EDITED = [(GRADLE, r'versionCode = \d+'), (GRADLE, r'versionName = "[\d.]+"'),
+          ('docs/DESCRIPTION.md', DESCRIPTION_VERSION),
+          ('docs/DESCRIPCIÓN_es.md', DESCRIPCION_VERSION)]
 
 DESCRIPTION = ('Release a new version of Slowdown on GitHub and '
                'Codeberg, from the "Unreleased" sections of the changelogs.')
@@ -225,6 +232,10 @@ class Release:
             if not section(path, heading):
                 sys.exit(f'release: {path} has no "## {heading}" section, or '
                          'it is empty: write there what is new first')
+        for path, pattern in EDITED:
+            if not re.search(pattern, read(path), re.MULTILINE):
+                sys.exit(f'release: {path}: did not find /{pattern}/; nothing '
+                         'was changed')
         # Todas las pruebas, en paralelo, antes de tocar nada
         print('Running the tests (tools/test.sh)…', flush=True)
         if subprocess.run([os.path.join(ROOT, 'tools', 'test.sh')],
@@ -305,10 +316,9 @@ what each one is for.
         for path, heading in PENDING.items():
             substitute(path, rf'^## {re.escape(heading)}$',
                        f'## {name} — {today}')
-        substitute('docs/DESCRIPTION.md', r'the current one is [\d.]+\.',
+        substitute('docs/DESCRIPTION.md', DESCRIPTION_VERSION,
                    f'the current one is {name}.')
-        substitute('docs/DESCRIPCIÓN_es.md',
-                   r'^# Slowdown [\d.]+: descripción',
+        substitute('docs/DESCRIPCIÓN_es.md', DESCRIPCION_VERSION,
                    f'# Slowdown {name}: descripción')
         # Las notas de la versión para las tiendas, del registro de cambios.
         notes = store_notes.write(code, name, force=True)
