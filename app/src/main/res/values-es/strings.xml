@@ -58,7 +58,7 @@
     <string name="volume">Volumen</string>
     <string name="volume_value">Volumen: %1$d %%</string>
     <string name="boost">Refuerzo</string>
-    <string name="boost_hint">Refuerzo del volumen: el sonido por 1,5, más fuerte que la grabación (puede distorsionar); la perilla conserva su número</string>
+    <string name="boost_hint">Refuerzo del volumen: el sonido por %1$s, más fuerte que la grabación (puede distorsionar); la perilla conserva su número. El menú ⋮ &gt; Refuerzo del volumen cambia cuánto</string>
     <string name="position_length">Posición / duración</string>
     <string name="bookmarks_and_loops">Marcadores y bucles</string>
     <string name="time">Tiempo</string>
@@ -69,4 +69,8 @@
     <string name="semitones">Semitonos</string>
     <string name="st">\u0020st</string>
     <string name="selection_none">Selección: –</string>
+    <string name="volume_boost">Refuerzo del volumen</string>
+    <string name="boosted">(reforzado: el sonido por %1$s)</string>
+    <string name="louder">(más alto que la grabación: puede distorsionar)</string>
+    <string name="volume_home">un doble toque lo devuelve a 100 %%</string>
 </resources>

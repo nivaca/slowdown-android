@@ -44,8 +44,10 @@ Qué hace
   mantenga un dedo sobre la onda y arrástrelo, o ponga su principio y su
   final con A y B en la posición. Las selecciones se pueden guardar como
   bucles con un nombre (Añadir, en la pestaña Bucles).
-- El volumen, hasta 100 % (el de la grabación), o más con el Refuerzo (el
-  sonido por 1,5, la perilla en rojo donde pasa el de la grabación).
+- El volumen, hasta 100 % (el de la grabación), o más con el Refuerzo: el
+  sonido por 1,8, o por lo que se elija en el menú (Refuerzo del volumen: de
+  ×1,2 a ×3), como en py-slowdown; la perilla se pone roja donde el sonido
+  pasa el de la grabación.
 - Marcadores en la posición, o en cualquier punto manteniendo un dedo sobre
   la onda sin moverlo; cada uno puede tener un nombre (manteniendo un dedo
   sobre su fila), y uno puede ser el primer pulso de la grabación. Se pueden

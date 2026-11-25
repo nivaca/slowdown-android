@@ -127,8 +127,10 @@ desktop the pointer follows the mouse; under a finger a small knob is
 hidden, so here it turns by dragging up or to the right, and a double tap
 takes it home. There are knobs for the speed (with 1× and the menu
 Speeds), the semitones and the cents (with ø), and the volume, with Boost,
-as in py-slowdown: the square of the knob's value, times 1.5 with Boost,
-and the knob in red where the sound passes the recording's. The bookmarks
+as in py-slowdown: the square of the knob's value, times the factor of
+Boost, and the knob in red where the sound passes the recording's. The
+factor, as in the desktop's Settings, is chosen in the menu (Volume boost:
+×1.2, 1.5, 1.8, the first one, 2, 2.5 or 3). The bookmarks
 and the loops went into a panel like the desktop's dock: two tabs, a table
 with Time and Label, and the buttons Add, Remove and Export… (a text file
 like py-slowdown's).

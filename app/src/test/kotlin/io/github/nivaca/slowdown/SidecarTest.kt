@@ -131,6 +131,15 @@ class SidecarTest {
     }
 
     @Test
+    fun boostFactorsWrittenAsTheDesktop() {
+        // (como QLocale en py-slowdown: sin decimales de más, con la coma en español)
+        assertEquals(listOf("1.2", "1.5", "1.8", "2", "2.5", "3"),
+            MainActivity.BOOSTS.map { MainActivity.number(it, java.util.Locale.ENGLISH) })
+        assertEquals("1,8", MainActivity.number(1.8, java.util.Locale.forLanguageTag("es")))
+        assertEquals(1.8, MainActivity.BOOST, 0.0)
+    }
+
+    @Test
     fun notOneOfOurs() {
         val file = File(folder, "x.slx").apply { writeText("<other/>") }
         assertNull(Sidecar.read(file))

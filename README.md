@@ -42,8 +42,9 @@ What it does
   there is none: hold a finger on the waveform and drag, or set its start and
   end with A and B at the playing position. Selections can be kept as loops
   with a name (Add, in the tab Loops).
-- The volume, up to 100% (the recording's), or more with Boost (the sound
-  times 1.5, the knob red where it passes the recording's).
+- The volume, up to 100% (the recording's), or more with Boost: the sound
+  times 1.8, or the factor chosen in the menu (Volume boost: ×1.2 to ×3), as
+  in py-slowdown; the knob turns red where the sound passes the recording's.
 - Bookmarks at the playing position, or anywhere by holding a finger on the
   waveform without moving it; each can have a name (hold a finger on its
   row), and one can be the first beat of the recording. They can be exported

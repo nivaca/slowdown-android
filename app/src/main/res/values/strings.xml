@@ -59,7 +59,7 @@
     <string name="volume">Volume</string>
     <string name="volume_value">Volume: %1$d%%</string>
     <string name="boost">Boost</string>
-    <string name="boost_hint">Volume boost: the sound times 1.5, louder than the recording (it may distort); the knob keeps its number</string>
+    <string name="boost_hint">Volume boost: the sound times %1$s, louder than the recording (it may distort); the knob keeps its number. The menu ⋮ &gt; Volume boost changes how much</string>
     <string name="position_length">Position / length</string>
     <string name="bookmarks_and_loops">Bookmarks and loops</string>
     <string name="time">Time</string>
@@ -70,4 +70,8 @@
     <string name="semitones">Semitones</string>
     <string name="st">\u0020st</string>
     <string name="selection_none">Selection: –</string>
+    <string name="volume_boost">Volume boost</string>
+    <string name="boosted">(boosted: the sound times %1$s)</string>
+    <string name="louder">(louder than the recording: it may distort)</string>
+    <string name="volume_home">a double tap goes back to 100%%</string>
 </resources>

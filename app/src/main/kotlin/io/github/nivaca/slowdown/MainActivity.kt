@@ -226,7 +226,6 @@ class MainActivity : Activity(), WaveformView.Listener {
             prefs.edit().putBoolean("volume_boost", on).apply()
             applyVolume()
         }
-        boost.tooltipText = getString(R.string.boost_hint)
 
         // La altura: semitonos y cents, cada uno con su perilla, 0 arriba
         semitoneKnob.apply {
@@ -424,7 +423,7 @@ class MainActivity : Activity(), WaveformView.Listener {
             if (kept > NORMAL_VOLUME) {
                 // (de py-slowdown 1.3, más fuerte que la grabación: con el refuerzo, lo que suena casi igual)
                 boost.isChecked = true
-                session.volume = minOf(NORMAL_VOLUME, (kept / sqrt(BOOST)).roundToInt())
+                session.volume = minOf(NORMAL_VOLUME, (kept / sqrt(boostFactor())).roundToInt())
             }
         }
         volumeKnob.show(session.volume ?: NORMAL_VOLUME)
@@ -554,13 +553,31 @@ class MainActivity : Activity(), WaveformView.Listener {
         applyVolume()
     }
 
+    // Por cuánto multiplica el sonido el refuerzo: uno de BOOSTS, elegido en el menú (como en py-slowdown)
+    private fun boostFactor(): Double = prefs.getFloat("volume_boost_factor", BOOST.toFloat()).toDouble()
+        .let { saved -> BOOSTS.firstOrNull { kotlin.math.abs(it - saved) < 1e-6 } ?: BOOST }
+
+    private fun setBoostFactor(factor: Double) {
+        prefs.edit().putFloat("volume_boost_factor", factor.toFloat()).apply()
+        applyVolume()
+        updateMenu()
+    }
+
+    private fun gain(value: Int): Double =
+        // Una curva cuadrada (los pasos de la perilla suenan más parejos al oído), por el refuerzo si está puesto
+        (value / 100.0) * (value / 100.0) * (if (boost.isChecked) boostFactor() else 1.0)
+
     private fun applyVolume() {
-        // Una curva cuadrada (los pasos de la perilla suenan más parejos al oído), por 1,5 con el refuerzo
         val value = volumeKnob.value
-        Engine.setVolume((value / 100.0) * (value / 100.0) * (if (boost.isChecked) BOOST else 1.0))
-        // (en rojo desde el primer valor que, con el refuerzo, pasa del sonido de la grabación: 82 %)
-        volumeKnob.warn = if (boost.isChecked) ceil(100 / sqrt(BOOST)).toInt() - 1 else null
-        volumeKnob.tooltipText = getString(R.string.volume_value, value)
+        val factor = boostFactor()
+        Engine.setVolume(gain(value))
+        // (en rojo desde el primer valor que, con el refuerzo, pasa del sonido de la grabación: 75 % con ×1,8)
+        volumeKnob.warn = if (boost.isChecked) ceil(100 / sqrt(factor)).toInt() - 1 else null
+        var tip = getString(R.string.volume_value, value)
+        if (boost.isChecked) tip += " " + getString(R.string.boosted, number(factor))
+        if (gain(value) > 1.0) tip += " " + getString(R.string.louder)
+        volumeKnob.tooltipText = tip + "; " + getString(R.string.volume_home)
+        boost.tooltipText = getString(R.string.boost_hint, number(factor))
     }
 
     private fun showPlaying() {
@@ -884,6 +901,15 @@ class MainActivity : Activity(), WaveformView.Listener {
             else -> R.id.quality_high
         }).isChecked = true
         for (id in listOf(R.id.save, R.id.close)) menu.findItem(id).isEnabled = loaded
+        // El refuerzo: ×1,2 … ×3, el de ahora marcado
+        val boosts = menu.findItem(R.id.boost_factor).subMenu ?: return
+        if (boosts.size() == 0) {
+            BOOSTS.forEachIndexed { i, factor -> boosts.add(BOOST_GROUP, BOOST_ITEM + i, i, "×${number(factor)}") }
+            boosts.setGroupCheckable(BOOST_GROUP, true, true)
+        }
+        val factor = boostFactor()
+        // (solo el de ahora: en un grupo exclusivo, setChecked(false) también marca la opción)
+        boosts.findItem(BOOST_ITEM + BOOSTS.indexOf(factor))?.isChecked = true
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
@@ -904,6 +930,7 @@ class MainActivity : Activity(), WaveformView.Listener {
                 Engine.setQuality(quality)
                 updateMenu()
             }
+            in BOOST_ITEM until BOOST_ITEM + BOOSTS.size -> setBoostFactor(BOOSTS[item.itemId - BOOST_ITEM])
             R.id.skip -> {
                 val choices = intArrayOf(1, 2, 3, 5, 10, 15, 30, 60)
                 AlertDialog.Builder(this)
@@ -1018,7 +1045,14 @@ class MainActivity : Activity(), WaveformView.Listener {
         private const val EXPORT = 2
         const val SPEED_STEP = 0.05
         const val NORMAL_VOLUME = 100  // por ciento: el sonido de la grabación, lo más que da la perilla
-        const val BOOST = 1.5  // el refuerzo multiplica el sonido, sin que la perilla cambie de número
+        val BOOSTS = listOf(1.2, 1.5, 1.8, 2.0, 2.5, 3.0)  // por cuánto puede multiplicar el sonido el refuerzo
+        const val BOOST = 1.8  // el de siempre; la perilla no cambia de número
+        private const val BOOST_GROUP = 10
+        private const val BOOST_ITEM = 100
+
+        /** VALUE as the language of the phone writes it (1,8 in Spanish), without needless decimals. */
+        fun number(value: Double, locale: java.util.Locale = java.util.Locale.getDefault()): String =
+            java.text.NumberFormat.getNumberInstance(locale).apply { maximumFractionDigits = 2 }.format(value)
         const val MAX_CENTS = 50
         const val SEMITONE_TICK = 3
         const val CENT_TICK = 5

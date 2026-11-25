@@ -12,6 +12,11 @@
             </group>
         </menu>
     </item>
+    <!-- Por cuánto multiplica el sonido el refuerzo (los mismos que py-slowdown); las opciones se ponen en
+         MainActivity -->
+    <item android:id="@+id/boost_factor" android:title="@string/volume_boost">
+        <menu />
+    </item>
     <item android:id="@+id/skip" android:title="@string/skip_length" />
     <item android:id="@+id/save" android:title="@string/save_slx" />
     <item android:id="@+id/close" android:title="@string/close" />
