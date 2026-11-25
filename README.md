@@ -83,10 +83,11 @@ What it does
   headphones plays and pauses.
 - Interface in English and in Spanish, as the phone is set.
 
+- Plays on with the screen off, or with another app in front, with a media
+  notification and the lock screen's controls.
+
 Not yet in this version (they are in py-slowdown): the count-in, the ways of
-hearing (one channel, without the centre, the bass), exporting the audio, and
-playing with the screen off: for now the screen stays on while it plays, and
-it pauses when one leaves the app.
+hearing (one channel, without the centre, the bass) and exporting the audio.
 
 Building
 --------

@@ -14,6 +14,12 @@ All notable changes to Slowdown, the Android version of
   files can keep them in a folder chosen, such as that of the music, so that
   each one is beside its recording, as on the desktop, and travels with it;
   the app's own copy stays as well.
+- Plays on with the screen off, or with another app in front: a playback
+  service with a media notification (back, play/pause, forward) on the lock
+  screen and in the notifications, and the buttons of headphones. The app
+  no longer pauses when one leaves it; going back to it shows what is
+  playing. It still pauses when the headphones are unplugged, or when
+  another app takes the sound (a call).
 
 ## 1.1 — 2026-11-25
 

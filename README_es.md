@@ -86,10 +86,12 @@ Qué hace
   auriculares toca y pausa.
 - Interfaz en inglés y en español, según el idioma del teléfono.
 
+- Sigue sonando con la pantalla apagada, o con otra aplicación delante, con
+  una notificación y los mandos de la pantalla de bloqueo.
+
 Todavía no están en esta versión (sí en py-slowdown): la cuenta previa, las
-maneras de oír (un canal, sin el centro, los graves), la exportación del
-audio y tocar con la pantalla apagada: por ahora la pantalla no se apaga
-mientras suena, y se pausa al salir de la aplicación.
+maneras de oír (un canal, sin el centro, los graves) y la exportación del
+audio.
 
 Compilación
 -----------

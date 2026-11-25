@@ -1,0 +1,6 @@
+<!-- El icono de la notificación: las barras de la onda del icono de la aplicación, en blanco -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M2,10.5h1.6v3H2zM5,8.2h1.6v7.6H5zM8,5.5h1.6v13H8zM11,7.5h1.6v9H11zM14,4.5h1.6v15H14zM17,8.6h1.6v6.8H17zM20,10h1.6v4H20z" />
+</vector>

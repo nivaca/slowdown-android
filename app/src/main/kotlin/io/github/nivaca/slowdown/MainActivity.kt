@@ -81,27 +81,27 @@ class MainActivity : Activity(), WaveformView.Listener {
     private lateinit var exportButton: Button
 
     private val handler = Handler(Looper.getMainLooper())
-    private var uri: Uri? = null
-    private var source: Source? = null
-    private var session = Session()
-    private var loaded = false
+    // Lo que se toca vive en Playback, fuera de la ventana, para que siga sonando sin ella
+    private var uri: Uri?
+        get() = Playback.uri
+        set(value) { Playback.uri = value }
+    private var source: Source?
+        get() = Playback.source
+        set(value) { Playback.source = value }
+    private var session: Session
+        get() = Playback.session
+        set(value) { Playback.session = value }
+    private var loaded: Boolean
+        get() = Playback.loaded
+        set(value) { Playback.loaded = value }
     private var opening = false
     private var menu: Menu? = null
     private var skip = 5
     private var showingLoops = false
     private var chosen = -1  // la fila elegida de la tabla
 
-    // La carpeta de los .slx, dentro de la aplicación; y, si se eligió, otra (la de la música, por ejemplo), que
-    // se lee primero y se escribe también
-    private val slxFolder by lazy { File(filesDir, "slx") }
-
-    private fun chosenFolder(): TreeFolder? {
-        val tree = prefs.getString("slx_tree", null)?.let(Uri::parse) ?: return null
-        val allowed = contentResolver.persistedUriPermissions.any { it.uri == tree && it.isWritePermission }
-        return if (allowed) TreeFolder(contentResolver, tree) else null
-    }
-
-    private fun stores(): List<SlxFolder> = listOfNotNull(chosenFolder(), FileFolder(slxFolder))
+    private fun chosenFolder() = Playback.chosenFolder(this)
+    private fun stores() = Playback.stores(this)
 
     private val version by lazy { packageManager.getPackageInfo(packageName, 0).versionName ?: "" }
 
@@ -125,7 +125,9 @@ class MainActivity : Activity(), WaveformView.Listener {
         val incoming = intent?.takeIf { it.action == Intent.ACTION_VIEW }?.data
         val last = prefs.getString("last", null)?.let(Uri::parse)
         when {
-            incoming != null -> open(incoming)
+            incoming != null && incoming != uri -> open(incoming)
+            // Lo que ya suena (la ventana se cerró y vuelve): se muestra, sin abrirlo otra vez
+            loaded && Engine.duration() > 0 -> attach()
             last != null && hasPermission(last) -> open(last)
             else -> showEmpty()
         }
@@ -139,32 +141,25 @@ class MainActivity : Activity(), WaveformView.Listener {
     override fun onResume() {
         super.onResume()
         Choreographer.getInstance().postFrameCallback(ticker)
-        registerReceiver(noisy, IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY))
+        if (loaded) showPlaying()
     }
 
     override fun onPause() {
         super.onPause()
         Choreographer.getInstance().removeFrameCallback(ticker)
-        unregisterReceiver(noisy)
         save()
     }
 
-    override fun onStop() {
-        super.onStop()
-        // Sin un servicio de reproducción, Android congela la aplicación al rato de dejar la pantalla: mejor
-        // pausar ahora que cortar en cualquier parte. (Tocar con la pantalla apagada vendrá con ese servicio.)
-        if (Engine.playing()) {
-            Engine.pause()
-            showPlaying()
-        }
-    }
-
+    // Al salir de la ventana sigue sonando (el servicio de reproducción la reemplaza); al cerrarla del todo
+    // sin que suene, el archivo se cierra
     override fun onDestroy() {
         super.onDestroy()
-        if (isFinishing) {
-            Engine.pause()
+        if (isFinishing && !Engine.playing()) {
+            save()
             Engine.nativeClose()
-            abandonFocus()
+            loaded = false
+            Playback.abandonFocus(this)
+            PlaybackService.update(this)
         }
     }
 
@@ -198,6 +193,7 @@ class MainActivity : Activity(), WaveformView.Listener {
         findViewById<View>(R.id.stop).setOnClickListener {
             Engine.stop()
             showPlaying()
+            PlaybackService.update(this)
         }
         findViewById<View>(R.id.to_start).setOnClickListener { seek(0.0) }
         findViewById<View>(R.id.to_end).setOnClickListener { seek(Engine.duration()) }
@@ -426,6 +422,26 @@ class MainActivity : Activity(), WaveformView.Listener {
         }
     }
 
+    // La ventana vuelve a lo que suena: lo de la sesión, sin tocar el motor
+    private fun attach() {
+        title = source?.name ?: getString(R.string.app_name)
+        hint.visibility = View.GONE
+        waveform.rate = Engine.rate()
+        waveform.duration = 0.0
+        waveform.duration = Engine.duration()
+        volumeKnob.show(session.volume ?: NORMAL_VOLUME)
+        waveform.selection = session.selection
+        showSelection()
+        showRepeat()
+        waveform.update(Engine.position())
+        chosen = -1
+        showSpeed()
+        showPitch()
+        showMarks()
+        showPlaying()
+        updateMenu()
+    }
+
     private fun loaded(kept: Session) {
         loaded = true
         session = kept
@@ -455,6 +471,7 @@ class MainActivity : Activity(), WaveformView.Listener {
         showPitch()
         showMarks()
         updateMenu()
+        PlaybackService.update(this)  // (la notificación, si la hay, muestra el archivo nuevo)
     }
 
     private fun showEmpty() {
@@ -480,6 +497,8 @@ class MainActivity : Activity(), WaveformView.Listener {
         save()
         Engine.pause()
         Engine.nativeClose()
+        loaded = false
+        PlaybackService.update(this)
         uri = null
         source = null
         prefs.edit().remove("last").apply()
@@ -487,19 +506,9 @@ class MainActivity : Activity(), WaveformView.Listener {
     }
 
     private fun save(announce: Boolean = false) {
-        val source = source ?: return
-        if (!loaded) return
-        session.position = Engine.position()
         // En la carpeta elegida, si la hay, y siempre en la de la aplicación
-        var shown: String? = null
-        for (folder in stores()) {
-            try {
-                val name = Sidecar.save(session, source, folder, version)
-                if (shown == null) shown = if (folder is TreeFolder) "${folder.label()}/$name" else name
-            } catch (e: Exception) {
-                Toast.makeText(this, e.message ?: e.toString(), Toast.LENGTH_LONG).show()
-            }
-        }
+        val (shown, errors) = Playback.save(this)
+        for (error in errors) Toast.makeText(this, error, Toast.LENGTH_LONG).show()
         if (announce && shown != null) Toast.makeText(this, getString(R.string.saved, shown), Toast.LENGTH_SHORT).show()
     }
 
@@ -510,12 +519,7 @@ class MainActivity : Activity(), WaveformView.Listener {
             pick()
             return
         }
-        if (Engine.playing()) {
-            Engine.pause()
-        } else {
-            requestFocus()
-            Engine.play(0, 0.0, 0.0)
-        }
+        Playback.toggle(this)
         showPlaying()
     }
 
@@ -678,7 +682,11 @@ class MainActivity : Activity(), WaveformView.Listener {
                 Engine.looping() && !session.repeat -> Engine.setLoop(-1.0, -1.0)
             }
         }
-        waveform.repeating = session.repeat && selection != null
+        showRepeat()
+    }
+
+    private fun showRepeat() {
+        waveform.repeating = session.repeat && session.selection != null
         repeatButton.isActivated = session.repeat
         repeatButton.imageTintList = if (session.repeat) ColorStateList.valueOf(palette.wave) else null
         repeatButton.setBackgroundColor(if (session.repeat) (palette.wave and 0x00ffffff) or 0x33000000 else Color.TRANSPARENT)
@@ -1148,7 +1156,7 @@ class MainActivity : Activity(), WaveformView.Listener {
             KeyEvent.KEYCODE_PLUS, KeyEvent.KEYCODE_EQUALS -> setSpeed(session.speed + SPEED_STEP)
             KeyEvent.KEYCODE_MINUS -> setSpeed(session.speed - SPEED_STEP)
             KeyEvent.KEYCODE_N -> if (shift) setPitch(0, 0) else setSpeed(1.0)
-            KeyEvent.KEYCODE_S -> { Engine.stop(); showPlaying() }
+            KeyEvent.KEYCODE_S -> { Engine.stop(); showPlaying(); PlaybackService.update(this) }
             KeyEvent.KEYCODE_B -> addBookmark(Engine.position())
             KeyEvent.KEYCODE_I -> selectionEdge(start = true)
             KeyEvent.KEYCODE_O -> selectionEdge(start = false)
@@ -1165,42 +1173,6 @@ class MainActivity : Activity(), WaveformView.Listener {
         val target = if (direction > 0) marks.firstOrNull { it > here + 0.05 }
         else marks.lastOrNull { it < here - 0.5 } ?: 0.0
         target?.let { seek(it) }
-    }
-
-    // --- el sonido de los demás: el foco de audio y los auriculares que se desconectan
-
-    private val audioManager by lazy { getSystemService(Context.AUDIO_SERVICE) as AudioManager }
-    private val focusRequest by lazy {
-        AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
-            .setAudioAttributes(AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_MEDIA)
-                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                .build())
-            .setOnAudioFocusChangeListener { change ->
-                if (change == AudioManager.AUDIOFOCUS_LOSS || change == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
-                    Engine.pause()
-                    showPlaying()
-                }
-            }
-            .build()
-    }
-
-    private fun requestFocus() {
-        audioManager.requestAudioFocus(focusRequest)
-    }
-
-    private fun abandonFocus() {
-        audioManager.abandonAudioFocusRequest(focusRequest)
-    }
-
-    private val noisy = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            // Se desconectaron los auriculares: no sigue sonando por el altavoz
-            if (Engine.playing()) {
-                Engine.pause()
-                showPlaying()
-            }
-        }
     }
 
     companion object {

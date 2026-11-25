@@ -14,6 +14,12 @@ Los cambios de Slowdown, la versión para Android de
   .slx puede guardarlos en una carpeta elegida, como la de la música, para
   que cada uno quede junto a su grabación, como en el ordenador, y viaje con
   ella; la copia de la aplicación se queda también.
+- Sigue sonando con la pantalla apagada, o con otra aplicación delante: un
+  servicio de reproducción con su notificación (atrás, tocar/pausa,
+  adelante) en la pantalla de bloqueo y en las notificaciones, y los botones
+  de los auriculares. La aplicación ya no se pausa al salir de ella; al
+  volver, muestra lo que suena. Sigue pausándose si se desconectan los
+  auriculares, o si otra aplicación toma el sonido (una llamada).
 
 ## 1.1 — 2026-11-25
 

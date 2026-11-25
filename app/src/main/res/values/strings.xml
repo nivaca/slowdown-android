@@ -88,4 +88,5 @@ The stretching is done by the Rubber Band Library, © Particular Programs Ltd. (
     <string name="not_slx">%1$s is not a .slx of py-slowdown.</string>
     <string name="slx_of_other">This .slx is of %1$s. Use it for %2$s?</string>
     <string name="slx_folder_title">Where the .slx files are kept</string>
+    <string name="playback_channel">Playback</string>
 </resources>
