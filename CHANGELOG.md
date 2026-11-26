@@ -5,7 +5,7 @@ All notable changes to Slowdown, the Android version of
 [GitHub](https://github.com/nivaca/slowdown-android) and
 [Codeberg](https://codeberg.org/nivaca/slowdown-android).
 
-## Unreleased
+## 1.3 — 2026-11-26
 
 What py-slowdown gained in its versions 1.4 to 1.6, where a phone can have it.
 
