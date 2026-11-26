@@ -115,7 +115,8 @@ class MainActivity : Activity(), WaveformView.Listener {
     private var showingLoops = false
     private var showingSound = false
     private var tapped: Int? = null  // el tempo marcado (Marcar), hasta que se abre otro archivo
-    private var xsc: Transcribe.File? = null  // un .xsc cuya grabación se está eligiendo
+    // Lo leído de un .slx o de un .xsc cuya grabación se está eligiendo, y lo que se dirá al abrirla
+    private var waiting: Pair<Session, String>? = null
     private var chosen = -1  // la fila elegida de la tabla
 
     private fun chosenFolder() = Playback.chosenFolder(this)
@@ -545,13 +546,13 @@ class MainActivity : Activity(), WaveformView.Listener {
             EXPORT_AUDIO -> exportAudioTo(target)
             IMPORT_SLX -> readSlx(target)
             IMPORT_XSC -> readXsc(target)
-            PICK_FOR_XSC -> {
+            PICK_FOR_SESSION -> {
                 try {
                     contentResolver.takePersistableUriPermission(target, Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 } catch (_: SecurityException) {
                 }
-                xsc?.let { open(target, it.session) }
-                xsc = null
+                waiting?.let { (session, done) -> open(target, session, done) }
+                waiting = null
             }
             TREE -> {
                 contentResolver.takePersistableUriPermission(target,
@@ -578,8 +579,9 @@ class MainActivity : Activity(), WaveformView.Listener {
         return Source(uri.toString(), name, size)
     }
 
-    // OVERRIDE: lo que se toma en lugar del .slx (de un .xsc de Transcribe!), y se guarda luego en él
-    private fun open(target: Uri, override: Session? = null) {
+    // OVERRIDE: lo que se toma en lugar del .slx (de un .xsc de Transcribe! o de otro .slx), y se guarda luego en
+    // él; DONE, lo que se dice entonces
+    private fun open(target: Uri, override: Session? = null, done: String? = null) {
         if (opening) return
         save()
         Engine.pause()
@@ -620,8 +622,7 @@ class MainActivity : Activity(), WaveformView.Listener {
                 loaded(kept ?: Session())
                 if (override != null) {
                     save()
-                    Toast.makeText(this, getString(R.string.xsc_imported, override.bookmarks.size, override.loops.size),
-                        Toast.LENGTH_LONG).show()
+                    done?.let { Toast.makeText(this, it, Toast.LENGTH_LONG).show() }
                 }
             }
         }
@@ -1528,7 +1529,7 @@ class MainActivity : Activity(), WaveformView.Listener {
             Engine.QUALITY_R2 -> R.id.quality_r2
             else -> R.id.quality_high
         }).isChecked = true
-        for (id in listOf(R.id.save, R.id.close, R.id.export_slx, R.id.import_slx, R.id.export_audio, R.id.select_all)) {
+        for (id in listOf(R.id.save, R.id.close, R.id.export_slx, R.id.export_audio, R.id.select_all)) {
             enable(menu.findItem(id), loaded)
         }
         enable(menu.findItem(R.id.zoom_selection), loaded && session.selection != null)
@@ -1656,7 +1657,6 @@ class MainActivity : Activity(), WaveformView.Listener {
     }
 
     private fun readSlx(target: Uri) {
-        val source = source ?: return
         val text = try {
             contentResolver.openInputStream(target)?.use { it.readBytes().toString(Charsets.UTF_8) }
         } catch (_: Exception) {
@@ -1667,12 +1667,18 @@ class MainActivity : Activity(), WaveformView.Listener {
             Toast.makeText(this, getString(R.string.not_slx, describe(target).name), Toast.LENGTH_LONG).show()
             return
         }
+        val of = Sidecar.owner(text)?.second.orEmpty()
+        // Sin una grabación abierta, se elige la suya (como con un .xsc)
+        val source = source
+        if (!loaded || source == null) {
+            chooseRecording(kept, of, getString(R.string.slx_loaded, describe(target).name))
+            return
+        }
         val apply = {
             loaded(kept)
             save(announce = true)
         }
         // Si es de otra grabación (por su nombre), se pregunta antes
-        val of = Sidecar.owner(text)?.second.orEmpty()
         if (of.isEmpty() || of == source.name) apply()
         else AlertDialog.Builder(this)
             .setMessage(getString(R.string.slx_of_other, of, source.name))
@@ -1714,18 +1720,25 @@ class MainActivity : Activity(), WaveformView.Listener {
         // La grabación: la abierta, si se llama como dice el .xsc; si no, la que se elija
         val current = uri
         if (current != null && loaded && file.recording.isNotEmpty() && source?.name == file.recording) {
-            open(current, file.session)
+            open(current, file.session, imported(file.session))
             return
         }
-        xsc = file
-        Toast.makeText(this, getString(R.string.xsc_choose_recording, file.recording.ifEmpty { "?" }), Toast.LENGTH_LONG).show()
+        chooseRecording(file.session, file.recording, imported(file.session))
+    }
+
+    private fun imported(session: Session) = getString(R.string.xsc_imported, session.bookmarks.size, session.loops.size)
+
+    // La grabación de lo leído (un .slx o un .xsc), llamada RECORDING: se elige, y se abre con SESSION
+    private fun chooseRecording(session: Session, recording: String, done: String) {
+        waiting = session to done
+        Toast.makeText(this, getString(R.string.choose_recording, recording.ifEmpty { "?" }), Toast.LENGTH_LONG).show()
         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
             addCategory(Intent.CATEGORY_OPENABLE)
             type = "*/*"
             putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("audio/*", "video/*", "application/ogg"))
         }
         @Suppress("DEPRECATION")
-        startActivityForResult(intent, PICK_FOR_XSC)
+        startActivityForResult(intent, PICK_FOR_SESSION)
     }
 
     private fun slxFolderDialog() {
@@ -1876,7 +1889,7 @@ class MainActivity : Activity(), WaveformView.Listener {
         private const val TREE = 5
         private const val EXPORT_AUDIO = 6
         private const val IMPORT_XSC = 7
-        private const val PICK_FOR_XSC = 8
+        private const val PICK_FOR_SESSION = 8
         private const val SAVE_PRESET = 1000
         private const val REMOVE_PRESET = 1001
         val CHANNELS = listOf("both", "left", "right", "mono", "no_centre")  // los nombres del .slx de py-slowdown

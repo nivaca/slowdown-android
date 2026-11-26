@@ -11,6 +11,9 @@ All notable changes to Slowdown, the Android version of
   Close the file, while no recording is open) are now shown in grey. Some
   phones, Motorola's among them, drew them like the others, so that Load a
   .slx… seemed to do nothing.
+- **Load a .slx…** works with no recording open, as Import .xsc… does: it
+  reads which recording the .slx is of, asks for it, and opens it with what
+  the .slx keeps.
 
 ## 1.3 — 2026-11-26
 

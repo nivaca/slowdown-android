@@ -11,6 +11,9 @@ Los cambios de Slowdown, la versión para Android de
   las exportaciones, Cerrar el archivo, mientras no hay una grabación abierta)
   se ven ahora en gris. Algunos teléfonos, los Motorola entre ellos, las
   dibujaban como las demás, y Cargar un .slx… parecía no hacer nada.
+- **Cargar un .slx…** funciona sin una grabación abierta, como Importar
+  .xsc…: lee de qué grabación es el .slx, la pide y la abre con lo que el .slx
+  guarda.
 
 ## 1.3 — 2026-11-26
 
