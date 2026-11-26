@@ -7,13 +7,11 @@ Los cambios de Slowdown, la versión para Android de
 
 ## Sin publicar
 
-- Las opciones del menú que aún no se pueden usar (Cargar un .slx…, Guardar,
-  las exportaciones, Cerrar el archivo, mientras no hay una grabación abierta)
-  se ven ahora en gris. Algunos teléfonos, los Motorola entre ellos, las
-  dibujaban como las demás, y Cargar un .slx… parecía no hacer nada.
-- **Cargar un .slx…** funciona sin una grabación abierta, como Importar
-  .xsc…: lee de qué grabación es el .slx, la pide y la abre con lo que el .slx
-  guarda.
+Una pausa vuelve adonde empezó a tocar, con Seguir desde la pausa y Tocar
+desde la última pausa, como en py-slowdown; un .slx se puede cargar sin una
+grabación abierta, y las opciones del menú que no se pueden usar se ven en
+gris en todos los teléfonos.
+
 - **Una pausa vuelve adonde empezó a tocar**, como en py-slowdown (1.3 y
   1.7): Tocar toca entonces otra vez el mismo pasaje. En pausa, una línea de
   puntos roja con el signo de la pausa al pie marca dónde fue, y **Seguir
@@ -25,6 +23,18 @@ Los cambios de Slowdown, la versión para Android de
   hace que Tocar mismo siga desde la línea de puntos; llevada a mano a otro
   lugar en pausa, toca desde allí. La notificación y los auriculares hacen lo
   mismo que el botón Tocar.
+- **Cargar un .slx…** funciona sin una grabación abierta, como Importar
+  .xsc…: lee de qué grabación es el .slx, la pide y la abre con lo que el .slx
+  guarda.
+- Las opciones del menú que aún no se pueden usar (Cargar un .slx…, Guardar,
+  las exportaciones, Cerrar el archivo, mientras no hay una grabación abierta)
+  se ven ahora en gris. Algunos teléfonos, los Motorola entre ellos, las
+  dibujaban como las demás, y Cargar un .slx… parecía no hacer nada.
+- `tools/release.py` publica ahora cada versión en Zenodo
+  (`tools/zenodo.py upload --publish`), en vez de dejar un borrador;
+  `--zenodo-draft` todavía lo deja. `tools/zenodo.py publish` publica un
+  borrador que ya está allí (por omisión, el que espera con el título del
+  proyecto).
 
 ## 1.3 — 2026-11-26
 

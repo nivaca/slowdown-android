@@ -7,13 +7,11 @@ All notable changes to Slowdown, the Android version of
 
 ## Unreleased
 
-- The menu items that cannot be used yet (Load a .slx…, Save, the exports,
-  Close the file, while no recording is open) are now shown in grey. Some
-  phones, Motorola's among them, drew them like the others, so that Load a
-  .slx… seemed to do nothing.
-- **Load a .slx…** works with no recording open, as Import .xsc… does: it
-  reads which recording the .slx is of, asks for it, and opens it with what
-  the .slx keeps.
+A pause goes back to where playing started, with Continue from the pause
+and Play from the last pause, as in py-slowdown; a .slx can be loaded with
+no recording open; and the menu items that cannot be used are grey on every
+phone.
+
 - **A pause goes back to where playing started**, as in py-slowdown (1.3
   and 1.7): Play then plays the same passage again. While paused, a red
   dotted line with a pause sign at its foot marks where it was paused, and
@@ -24,6 +22,17 @@ All notable changes to Slowdown, the Android version of
   menu, off by default, kept for every file) makes Play itself go on from
   the dotted line; moved by hand while paused, it plays from there. The
   notification and the headphones do the same as the Play button.
+- **Load a .slx…** works with no recording open, as Import .xsc… does: it
+  reads which recording the .slx is of, asks for it, and opens it with what
+  the .slx keeps.
+- The menu items that cannot be used yet (Load a .slx…, Save, the exports,
+  Close the file, while no recording is open) are now shown in grey. Some
+  phones, Motorola's among them, drew them like the others, so that Load a
+  .slx… seemed to do nothing.
+- `tools/release.py` now publishes each release on Zenodo
+  (`tools/zenodo.py upload --publish`), instead of leaving a draft;
+  `--zenodo-draft` still leaves one. `tools/zenodo.py publish` publishes a
+  draft already there (by default the one waiting with the project's title).
 
 ## 1.3 — 2026-11-26
 

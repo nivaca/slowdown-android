@@ -6,7 +6,7 @@ Android phone. It is for practising music and learning it by ear. Nicolas
 Vaughan made it in November 2026, as the Android version of py-slowdown,
 his program for the desktop (Python and Qt): the engine of py-slowdown was
 translated into C++, and the window was written again for a phone;
-the current one is 1.3. Here I explain how it was made, in six stages.
+the current one is 1.3. Here I explain how it was made, in seven stages.
 
 Slowdown is free software, under the GNU General Public License, version 3
 or later. It carries the Rubber Band Library 4.0.0, by Particular Programs
@@ -270,10 +270,44 @@ screen came out tiny: `TextPaint` has a field `density` of its own, and in
 Kotlin a block `apply { textSize = 14 * density }` took that one, which is
 1, instead of the screen's.
 
+7. After 1.3
+------------
+
+The day 1.3 came out I tried it on my phone, and Load a .slx… seemed to do
+nothing. It was disabled: with no recording open the app turns off the
+items of the menu that need one, but the system theme of the Motorola phone
+draws a disabled item exactly like the others. The app now greys those
+items itself, by colouring their titles. It also seemed better that loading
+a `.slx` should not need an open recording at all, so it now works as the
+import of a `.xsc` does: it reads the name of the recording in the `.slx`,
+asks for that recording, and opens it with what the `.slx` keeps.
+
+Meanwhile py-slowdown had reached 1.7. Its new option, Play from the last
+pause, only makes sense with an older habit of the desktop that the phone
+never had: since py-slowdown 1.3 a pause takes the position back to where
+playing started, so that Play repeats the same passage, and a dotted line
+marks where it was paused. The phone simply paused, as any player does.
+Both came now. They live in `Playback.kt`, not in the window, so the
+notification and the headphones do what the button does. Continue from the
+pause, which on the desktop is Shift+Space, is also a long press on the
+Play button, because a phone seldom has a keyboard. The other changes of
+1.6.1 and 1.7 have no place here: a `.slx` whose recording is both beside
+it and at the path it names cannot happen when every file comes through
+Android's picker.
+
+The F-Droid repository had a problem of its own: the apps showed no icon
+there. fdroidserver links each icon under a name with its hash and puts
+that name in the index; but when it runs again it deletes the link made
+the time before, and the index then names a file that is not there. The
+update script of the repository now removes those links before each run
+and checks that every file the index names exists. And from this version
+on, each release is published on Zenodo by the release script itself,
+instead of being left there as a draft.
+
 Testing
 -------
 
-There are 60 tests. Seven are programs in C++ that test the
+There are 64 tests. Seven are programs in C++ that test the
 engine compiled for the computer, run by CTest: the audio in memory (its
 chunks, reading across them, the peaks of the waveform), the renderer (the
 copy bit for bit at 1×; the length and the pitch of the stretched sound at
@@ -288,7 +322,7 @@ the same as the whole filter at once), and the export (a valid WAV, the
 same samples at 1×, twice as long at 0.5×, a selection, and the filter's
 delay made up, also with the equalizer), and the equalizer (its curve,
 each band's gain, flat untouched, the blocks a convolution, a change
-without a click). Thirty-five tests in Kotlin, run on the JVM, check the
+without a click). Thirty-seven tests in Kotlin, run on the JVM, check the
 `.slx` (that one written by py-slowdown is read, that what is written is
 read back, the numbers written as Python writes them, the names of the
 files and how the right one is found, the whole file repeated), the
@@ -296,9 +330,9 @@ bookmarks exported as text, the format of the times and of the boost
 factors, that the licences in the app, in `LICENSES/` and in the documents
 agree, how their texts are fitted to the screen, the `.slx` in any folder,
 the rules of the count-in and its bars and beats, the equalizer's curve,
-its presets and its place in the `.slx`, the files of Transcribe!, and the
-recent recordings. Eighteen tests in Python check the tools of the release
-(`tools/zenodo.py`). `tools/test.sh` runs the three kinds at once, each
+its presets and its place in the `.slx`, the files of Transcribe!, the
+recent recordings, and where a pause goes back to. Twenty tests in Python
+check the tools of the release (`tools/zenodo.py`, its publishing too). `tools/test.sh` runs the three kinds at once, each
 test in a process of its own.
 
 The tests of the engine were also compiled for the phone and run there,
@@ -318,10 +352,11 @@ a build signed with another key: the tab Sound and a preset while playing,
 the `.slx` with its `<equalizer>`, a loop on the waveform, zooming to the
 selection with the strip of the whole file, the value shown large, the
 clock, a knob's menu, the start screen, and a `.xsc` imported through the
-picker.
+picker. The things of stage 7 were tried on the Moto g55 again: the grey
+items of the menu, a `.slx` loaded with nothing open, and the pause.
 
 Without the libraries in `third_party/`, the texts of `LICENSES/` and the
-documentation, Slowdown has 106 files of its own (code, layouts, texts,
-build files, the store texts, tests and tools) with about 12,100 lines:
-2,790 of C++ in the engine, 4,010 of Kotlin in the window, 1,770 in the
-tests and 1,610 in the tools.
+documentation, Slowdown has 107 files of its own (code, layouts, texts,
+build files, the store texts, tests and tools) with about 12,350 lines:
+2,790 of C++ in the engine, 4,180 of Kotlin in the window, 1,830 in the
+tests and 1,670 in the tools.
