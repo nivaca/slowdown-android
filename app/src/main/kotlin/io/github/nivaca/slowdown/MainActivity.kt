@@ -57,6 +57,7 @@ import android.widget.TextView
 import android.widget.Toast
 import java.io.File
 import kotlin.concurrent.thread
+import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
@@ -216,8 +217,9 @@ class MainActivity : Activity(), WaveformView.Listener {
         exportButton = findViewById(R.id.export)
 
         playButton.setOnClickListener { toggle() }
+        playButton.setOnLongClickListener { continuePlaying(); true }
         findViewById<View>(R.id.stop).setOnClickListener {
-            Engine.stop()
+            Playback.stop()
             showPlaying()
             PlaybackService.update(this)
         }
@@ -652,6 +654,7 @@ class MainActivity : Activity(), WaveformView.Listener {
 
     private fun loaded(kept: Session) {
         loaded = true
+        Playback.forget()
         session = kept
         hint.visibility = View.GONE
         waveform.rate = Engine.rate()
@@ -748,6 +751,7 @@ class MainActivity : Activity(), WaveformView.Listener {
     private fun closeFile() {
         save()
         Engine.pause()
+        Playback.forget()
         Engine.nativeClose()
         loaded = false
         PlaybackService.update(this)
@@ -777,8 +781,23 @@ class MainActivity : Activity(), WaveformView.Listener {
 
     private fun seek(seconds: Double) {
         if (!loaded) return
-        Engine.seek(seconds.coerceIn(0.0, Engine.duration()))
+        Playback.seek(this, seconds)
         waveform.update(Engine.position())
+        showPauseMark()
+    }
+
+    // Seguir desde la última pausa (Mayús+Espacio, o el botón de tocar mantenido); sin pausa, tocar sin más
+    private fun continuePlaying() {
+        if (!loaded) return
+        if (Engine.playing()) return
+        Playback.continuePlaying(this)
+        showPlaying()
+    }
+
+    // La última pausa, mientras no suena (y no es la posición misma): desde allí sigue Seguir desde la pausa
+    private fun showPauseMark() {
+        val paused = Playback.pausedAt?.takeIf { !Engine.playing() && abs(it - Engine.position()) > 0.01 }
+        waveform.pauseMark = paused
     }
 
     private fun jump(seconds: Double) {
@@ -924,7 +943,13 @@ class MainActivity : Activity(), WaveformView.Listener {
     private fun showPlaying() {
         val playing = Engine.playing()
         playButton.setImageResource(if (playing) R.drawable.ic_pause else R.drawable.ic_play)
-        playButton.contentDescription = getString(if (playing) R.string.pause else R.string.play)
+        playButton.contentDescription = getString(when {
+            playing -> R.string.pause_back
+            Playback.fromPause(this) && Playback.pausedAt != null -> R.string.play_from_pause_button
+            else -> R.string.play
+        })
+        playButton.tooltipText = playButton.contentDescription
+        showPauseMark()
         // Mientras suena, la pantalla no se apaga (se practica mirándola)
         if (playing) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -952,10 +977,11 @@ class MainActivity : Activity(), WaveformView.Listener {
                 // El pulso de la cuenta previa, grande sobre la onda (antes del primer golpe, nada)
                 val counting = Engine.counting()
                 waveform.count = if (counting >= 100) counting / 100 else null
-                if (Engine.takeEnded() || wasPlaying != Engine.playing()) {
+                if (Playback.takeEnded() || wasPlaying != Engine.playing()) {
                     wasPlaying = Engine.playing()
                     showPlaying()
                 }
+                showPauseMark()
             }
             Choreographer.getInstance().postFrameCallback(this)
         }
@@ -1533,6 +1559,8 @@ class MainActivity : Activity(), WaveformView.Listener {
             enable(menu.findItem(id), loaded)
         }
         enable(menu.findItem(R.id.zoom_selection), loaded && session.selection != null)
+        enable(menu.findItem(R.id.continue_pause), loaded && !Engine.playing() && Playback.pausedAt != null)
+        menu.findItem(R.id.from_pause).isChecked = Playback.fromPause(this)
         // Cómo se oye: los canales (no con un archivo mono) y el filtro
         menu.findItem(HEAR_CHANNELS.entries.firstOrNull { it.value == session.channels }?.key ?: R.id.hear_both).isChecked = true
         menu.findItem(HEAR_FILTERS.entries.firstOrNull { it.value == session.filter }?.key ?: R.id.hear_none).isChecked = true
@@ -1565,8 +1593,20 @@ class MainActivity : Activity(), WaveformView.Listener {
         Color.argb(97, Color.red(color), Color.green(color), Color.blue(color))  // (el 38 % de los textos apagados)
     }
 
+    // (cada vez que se abre: la pausa cambia sin que el menú lo sepa)
+    override fun onPrepareOptionsMenu(menu: Menu): Boolean {
+        updateMenu()
+        return super.onPrepareOptionsMenu(menu)
+    }
+
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
+            R.id.continue_pause -> continuePlaying()
+            R.id.from_pause -> {
+                Playback.setFromPause(this, !Playback.fromPause(this))
+                updateMenu()
+                showPlaying()
+            }
             R.id.open -> pick()
             R.id.formants -> {
                 session.formants = !session.formants
@@ -1830,7 +1870,8 @@ class MainActivity : Activity(), WaveformView.Listener {
         val shift = event.isShiftPressed
         val ctrl = event.isCtrlPressed
         when (keyCode) {
-            KeyEvent.KEYCODE_SPACE, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, KeyEvent.KEYCODE_HEADSETHOOK -> toggle()
+            KeyEvent.KEYCODE_SPACE -> if (shift) continuePlaying() else toggle()
+            KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, KeyEvent.KEYCODE_HEADSETHOOK -> toggle()
             KeyEvent.KEYCODE_MEDIA_PLAY -> if (!Engine.playing()) toggle()
             KeyEvent.KEYCODE_MEDIA_PAUSE -> if (Engine.playing()) toggle()
             KeyEvent.KEYCODE_DPAD_LEFT -> when {
@@ -1860,7 +1901,7 @@ class MainActivity : Activity(), WaveformView.Listener {
             }
             KeyEvent.KEYCODE_A -> if (ctrl) selectAll() else return super.onKeyDown(keyCode, event)
             KeyEvent.KEYCODE_Z -> zoomToSelection()
-            KeyEvent.KEYCODE_S -> { Engine.stop(); showPlaying(); PlaybackService.update(this) }
+            KeyEvent.KEYCODE_S -> { Playback.stop(); showPlaying(); PlaybackService.update(this) }
             KeyEvent.KEYCODE_B -> addBookmark(Engine.position())
             KeyEvent.KEYCODE_I -> selectionEdge(start = true)
             KeyEvent.KEYCODE_O -> selectionEdge(start = false)

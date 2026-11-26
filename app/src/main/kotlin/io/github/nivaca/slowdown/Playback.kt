@@ -58,8 +58,83 @@ object Playback {
 
     // --- tocar y pausar, desde la ventana, la notificación, los auriculares o el teclado
 
+    // Como en py-slowdown: una pausa vuelve adonde empezó a tocar, para oír otra vez el pasaje, y guarda dónde
+    // fue, desde donde sigue Seguir desde la pausa (la línea de puntos de la onda)
+    var returnTo: Double? = null  // donde empezó a tocar
+    var pausedAt: Double? = null  // donde fue la última pausa
+
+    /** Play from the last pause: Play/Pause goes on from the last pause instead of from the position. */
+    fun fromPause(context: Context) = prefs(context).getBoolean("play_from_pause", false)
+
+    fun setFromPause(context: Context, on: Boolean) = prefs(context).edit().putBoolean("play_from_pause", on).apply()
+
+    /** Play/Pause's play: from the position, or, with Play from the last pause, from the last pause. */
     fun play(context: Context) {
+        if (!loaded || Engine.playing()) return
+        if (fromPause(context) && pausedAt != null) {
+            continuePlaying(context)
+            return
+        }
+        start(context)
+        returnTo = Engine.position()  // (después de tocar: al final del archivo, vuelve a empezar desde 0)
+    }
+
+    /** Plays from the last pause; pausing then goes back to where playing first started. */
+    fun continuePlaying(context: Context) {
+        if (!loaded || Engine.playing()) return
+        val paused = pausedAt
+        if (paused == null) {
+            play(context)
+            return
+        }
+        val first = returnTo
+        Engine.seek(minOf(paused, Engine.duration()))
+        start(context)
+        returnTo = first ?: Engine.position()
+    }
+
+    /** Moves the position by hand: while it plays, playing starts again there (a pause goes back there); while
+     * paused, with Play from the last pause, it plays from there, not from the old pause. */
+    fun seek(context: Context, seconds: Double) {
         if (!loaded) return
+        Engine.seek(seconds.coerceIn(0.0, Engine.duration()))
+        if (Engine.playing()) returnTo = Engine.position()
+        else if (fromPause(context)) pausedAt = null
+    }
+
+    fun stop() {
+        Engine.stop()
+        returnTo = null
+        pausedAt = null
+    }
+
+    /** Forgets where playing started and was paused (another file). */
+    fun forget() {
+        returnTo = null
+        pausedAt = null
+    }
+
+    // Adonde vuelve la posición: donde empezó a tocar; con una selección que se repite, dentro de ella
+    private fun returnPoint(): Double? = returnPoint(returnTo, session.selection?.takeIf { session.repeat })
+
+    /** Where a pause takes the position back to: BACK, where playing started; inside LOOP, if one repeats. */
+    fun returnPoint(back: Double?, loop: Pair<Double, Double>?): Double? {
+        if (back == null || loop == null) return back
+        return if (back >= loop.first && back < loop.second) back else loop.first
+    }
+
+    /** Whether the end of the file was reached since last asked; the position then also goes back to where
+     * playing started. */
+    fun takeEnded(): Boolean {
+        if (!Engine.takeEnded()) return false
+        returnPoint()?.let {
+            Engine.seek(it)
+            pausedAt = null
+        }
+        return true
+    }
+
+    private fun start(context: Context) {
         requestFocus(context)
         val count = countIn(context)
         if (count.on) {
@@ -93,7 +168,10 @@ object Playback {
     fun firstBeat(): Double? = session.bookmarks.firstOrNull { it.firstBeat }?.time
 
     fun pause(context: Context) {
+        if (!Engine.playing()) return
         Engine.pause()
+        pausedAt = Engine.position()
+        returnPoint()?.let { Engine.seek(it) }
         save(context)
         PlaybackService.update(context)
     }
@@ -102,7 +180,7 @@ object Playback {
 
     fun jump(context: Context, seconds: Double) {
         if (!loaded) return
-        Engine.seek((Engine.position() + seconds).coerceIn(0.0, Engine.duration()))
+        seek(context, Engine.position() + seconds)
         PlaybackService.update(context)
     }
 

@@ -57,7 +57,7 @@ class PlaybackService : Service() {
                 override fun onSkipToPrevious() = Playback.jump(this@PlaybackService, -skip())
                 override fun onSkipToNext() = Playback.jump(this@PlaybackService, skip())
                 override fun onSeekTo(pos: Long) {
-                    Engine.seek(pos / 1000.0)
+                    Playback.seek(this@PlaybackService, pos / 1000.0)
                     refresh()
                 }
             })
@@ -125,6 +125,7 @@ class PlaybackService : Service() {
             if (foreground || force) close()
             return
         }
+        Playback.takeEnded()  // (al final del archivo, vuelve adonde empezó a tocar, también sin la ventana)
         val playing = Engine.playing()
         val title = Playback.source?.name ?: getString(R.string.app_name)
         // El estado va siempre (la posición avanza), la notificación solo cuando cambia algo

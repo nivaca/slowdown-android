@@ -70,6 +70,8 @@ class WaveformView(context: Context, attrs: AttributeSet? = null) : View(context
     var follow = true  // la vista sigue a la posición
     var count: Int? = null  // el pulso que suena en la cuenta previa, grande, en el centro
         set(value) { if (value != field) { field = value; invalidate() } }
+    var pauseMark: Double? = null  // la última pausa, mientras no suena: una línea de puntos roja
+        set(value) { if (value != field) { field = value; invalidate() } }
 
     // La pantalla de inicio: las grabaciones de hace poco, y si cada una está todavía
     var recents: List<Pair<Recent, Boolean>> = emptyList()
@@ -93,6 +95,25 @@ class WaveformView(context: Context, attrs: AttributeSet? = null) : View(context
         pathEffect = DashPathEffect(floatArrayOf(4 * density, 3 * density), 0f)
     }
     private val label = Paint(Paint.ANTI_ALIAS_FLAG).apply { textSize = 11 * density }
+    private val dotted = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeWidth = 2 * density
+        pathEffect = DashPathEffect(floatArrayOf(2 * density, 3 * density), 0f)
+    }
+
+    // La última pausa, como en py-slowdown: una línea de puntos del color de la posición, con el signo de la
+    // pausa (dos barras) al pie
+    private fun drawPauseMark(canvas: Canvas, x: Float, top: Float, bottom: Float) {
+        dotted.color = palette.cursor
+        canvas.drawLine(x, top + ruler, x, bottom, dotted)
+        fill.color = palette.cursor
+        val bar = 2.5f * density
+        val gap = 2.5f * density
+        val height = 9 * density
+        val foot = bottom - 3 * density
+        canvas.drawRect(x - gap / 2 - bar, foot - height, x - gap / 2, foot, fill)
+        canvas.drawRect(x + gap / 2, foot - height, x + gap / 2 + bar, foot, fill)
+    }
     private var columns = FloatArray(0)
     private var whole = FloatArray(0)
 
@@ -199,6 +220,7 @@ class WaveformView(context: Context, attrs: AttributeSet? = null) : View(context
         drawSelection(canvas, top, bottom)
         drawMarks(canvas, top, bottom)
         if (loops.isNotEmpty()) drawLoops(canvas, w, bottom, h)
+        pauseMark?.let { drawPauseMark(canvas, xOf(it), top, bottom) }
         // La posición, en rojo
         line.color = palette.cursor
         line.strokeWidth = 2 * density

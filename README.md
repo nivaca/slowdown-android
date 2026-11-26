@@ -63,6 +63,11 @@ What it does
 - Play, pause, stop, go to the start or to the end, back and forward by a
   skip length chosen in the menu (1 to 60 seconds; hold the button to keep
   going).
+- A pause takes the position back to where playing started, as in
+  py-slowdown, to hear the passage again; a red dotted line marks where it
+  was paused, and holding Play (or menu > Continue from the pause, or
+  Shift+Space) goes on from there. With menu > Play from the last pause,
+  Play itself goes on from the dotted line.
 - Speed from 0.25× to 3×, changed while it plays, with the pitch kept. The
   stretching is done by the [Rubber Band Library](https://breakfastquay.com/rubberband/),
   with its R3 ("finer") engine. At 1× the file is played as it is, sample
@@ -93,7 +98,7 @@ What it does
   that each one is beside its recording and travels with it to the
   computer and back.
 - A keyboard or a foot pedal that sends keys works with the keys of
-  py-slowdown (Space, ←/→, ↑/↓, B, I, O, L, Ctrl+A, Z, Ctrl+Shift+N…), and
+  py-slowdown (Space, Shift+Space, ←/→, ↑/↓, B, I, O, L, Ctrl+A, Z, Ctrl+Shift+N…), and
   the play button of headphones plays and pauses.
 - Interface in English and in Spanish, as the phone is set.
 - Plays on with the screen off, or with another app in front, with a media

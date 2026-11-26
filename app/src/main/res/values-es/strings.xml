@@ -10,6 +10,10 @@
     <string name="cannot_play">No se puede tocar %1$s: la salida de sonido no se abre.</string>
     <string name="play">Tocar</string>
     <string name="pause">Pausa</string>
+    <string name="pause_back">Pausar y volver adonde empezó; mantener Tocar sigue desde la pausa</string>
+    <string name="play_from_pause_button">Tocar desde la última pausa</string>
+    <string name="continue_pause">Seguir desde la pausa</string>
+    <string name="from_pause">Tocar desde la última pausa</string>
     <string name="to_start">Ir al principio</string>
     <string name="to_end">Ir al final</string>
     <string name="back">%1$d s atrás; mantenga apretado para seguir</string>

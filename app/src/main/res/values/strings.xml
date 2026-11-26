@@ -11,6 +11,10 @@
     <string name="cannot_play">Cannot play %1$s: the sound output does not open.</string>
     <string name="play">Play</string>
     <string name="pause">Pause</string>
+    <string name="pause_back">Pause and go back to where it started; hold Play to continue from the pause</string>
+    <string name="play_from_pause_button">Play from the last pause</string>
+    <string name="continue_pause">Continue from the pause</string>
+    <string name="from_pause">Play from the last pause</string>
     <string name="to_start">Go to the start</string>
     <string name="to_end">Go to the end</string>
     <string name="back">Back %1$d s; hold to keep going</string>

@@ -14,6 +14,16 @@ All notable changes to Slowdown, the Android version of
 - **Load a .slx…** works with no recording open, as Import .xsc… does: it
   reads which recording the .slx is of, asks for it, and opens it with what
   the .slx keeps.
+- **A pause goes back to where playing started**, as in py-slowdown (1.3
+  and 1.7): Play then plays the same passage again. While paused, a red
+  dotted line with a pause sign at its foot marks where it was paused, and
+  **Continue from the pause** goes on from there: hold the Play button, or
+  menu > Continue from the pause, or Shift+Space. With a repeated selection
+  it goes back inside it; moved while it plays, to the new place; at the
+  end of the file, too. **Play from the last pause** (a checkbox in the
+  menu, off by default, kept for every file) makes Play itself go on from
+  the dotted line; moved by hand while paused, it plays from there. The
+  notification and the headphones do the same as the Play button.
 
 ## 1.3 — 2026-11-26
 

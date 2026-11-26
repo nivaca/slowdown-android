@@ -14,6 +14,17 @@ Los cambios de Slowdown, la versión para Android de
 - **Cargar un .slx…** funciona sin una grabación abierta, como Importar
   .xsc…: lee de qué grabación es el .slx, la pide y la abre con lo que el .slx
   guarda.
+- **Una pausa vuelve adonde empezó a tocar**, como en py-slowdown (1.3 y
+  1.7): Tocar toca entonces otra vez el mismo pasaje. En pausa, una línea de
+  puntos roja con el signo de la pausa al pie marca dónde fue, y **Seguir
+  desde la pausa** sigue desde allí: manteniendo apretado el botón Tocar, o
+  menú > Seguir desde la pausa, o Mayús+Espacio. Con una selección que se
+  repite vuelve dentro de ella; llevada a otro lugar mientras suena, a ese
+  lugar; al final del archivo, también. **Tocar desde la última pausa** (una
+  casilla del menú, apagada al principio, que vale para todos los archivos)
+  hace que Tocar mismo siga desde la línea de puntos; llevada a mano a otro
+  lugar en pausa, toca desde allí. La notificación y los auriculares hacen lo
+  mismo que el botón Tocar.
 
 ## 1.3 — 2026-11-26
 

@@ -22,6 +22,8 @@
     <item android:id="@+id/reset_sound" android:title="@string/reset_sound" />
     <item android:id="@+id/select_all" android:title="@string/select_all" />
     <item android:id="@+id/zoom_selection" android:title="@string/zoom_selection" />
+    <item android:id="@+id/continue_pause" android:title="@string/continue_pause" />
+    <item android:id="@+id/from_pause" android:checkable="true" android:title="@string/from_pause" />
     <item android:id="@+id/formants" android:checkable="true" android:title="@string/keep_formants" />
     <item android:id="@+id/quality" android:title="@string/quality">
         <menu>

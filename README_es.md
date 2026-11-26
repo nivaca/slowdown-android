@@ -66,6 +66,11 @@ Qué hace
 - Tocar, pausar, detener, ir al principio o al final, atrás y adelante según una
   longitud del salto que se elige en el menú (de 1 a 60 segundos; mantenga
   apretado el botón para seguir).
+- Una pausa lleva la posición adonde empezó a tocar, como en py-slowdown,
+  para oír otra vez el pasaje; una línea de puntos roja marca dónde fue, y
+  mantener apretado Tocar (o menú > Seguir desde la pausa, o Mayús+Espacio)
+  sigue desde allí. Con menú > Tocar desde la última pausa, Tocar mismo sigue
+  desde la línea de puntos.
 - Velocidad de 0,25× a 3×, que se cambia mientras suena, sin cambiar la
   altura. El estiramiento lo hace la [biblioteca Rubber Band](https://breakfastquay.com/rubberband/),
   con su motor R3 («finer»). A 1× el archivo suena tal cual, muestra por
@@ -97,7 +102,7 @@ Qué hace
   para que cada uno quede junto a su grabación y viaje con ella al
   ordenador y de vuelta.
 - Un teclado, o un pedal que mande teclas, funciona con las teclas de
-  py-slowdown (Espacio, ←/→, ↑/↓, B, I, O, L, Ctrl+A, Z, Ctrl+Mayús+N…), y
+  py-slowdown (Espacio, Mayús+Espacio, ←/→, ↑/↓, B, I, O, L, Ctrl+A, Z, Ctrl+Mayús+N…), y
   el botón de los auriculares toca y pausa.
 - Interfaz en inglés y en español, según el idioma del teléfono.
 - Sigue sonando con la pantalla apagada, o con otra aplicación delante, con
