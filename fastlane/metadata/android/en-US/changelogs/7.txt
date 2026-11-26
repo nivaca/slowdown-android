@@ -1,0 +1,2 @@
+Import .xsc is gone from the menu, and with it the import of the files of Transcribe!.
+• Import .xsc is no longer in the menu. It was the only way to open a file of Transcribe! (.xsc) on the phone, so Slowdown no longer reads them; a .slx already written from one keeps all it took. py-slowdown takes the item off its menu too, but still opens these files with File > Open.

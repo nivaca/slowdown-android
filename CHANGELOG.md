@@ -5,7 +5,7 @@ All notable changes to Slowdown, the Android version of
 [GitHub](https://github.com/nivaca/slowdown-android) and
 [Codeberg](https://codeberg.org/nivaca/slowdown-android).
 
-## Unreleased
+## 1.5 — 2026-11-26
 
 Import .xsc is gone from the menu, and with it the import of the files of
 Transcribe!.

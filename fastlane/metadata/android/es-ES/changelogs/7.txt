@@ -1,0 +1,2 @@
+Importar .xsc ya no está en el menú, y con él se va la importación de los archivos de Transcribe!.
+• Importar .xsc ya no está en el menú. Era la única manera de abrir un archivo de Transcribe! (.xsc) en el teléfono, así que Slowdown ya no los lee; un .slx escrito a partir de uno conserva todo lo que tomó. py-slowdown también quita la opción de su menú, pero sigue abriendo esos archivos con Archivo > Abrir.
