@@ -45,10 +45,21 @@ What it does
   (light or dark, as the phone is set): the waveform, darker where it has
   played, with the position in red and the bookmarks in orange; under it the
   player's buttons and the time; the knobs of the speed, the volume and the
-  pitch; and the panel of the bookmarks and loops, with its two tabs. A tap
-  on the waveform moves the position there; dragging scrolls; pinching zooms
-  around the fingers. A knob turns by dragging up or to the right (down or
-  to the left, the other way), and goes home with a double tap.
+  pitch; and the panel of the bookmarks, the loops and the sound, with its
+  three tabs. The saved loops are drawn at the foot of the waveform, each a
+  band of its own colour with its name (a tap on one repeats it); zoomed in,
+  a strip above shows the whole file, with the part in view shaded (a tap
+  or a drag there shows that part). A tap on the waveform moves the
+  position there; dragging scrolls; pinching zooms around the fingers, and
+  menu > Zoom to the selection (Z) shows just the selection. A knob turns by
+  dragging up or to the right (down or to the left, the other way), goes
+  home with a double tap, and, held still, offers its usual values (the
+  chosen speeds, the intervals of 1, 2, 3, 5, 7 and 12 semitones…). The
+  speed knob, dragged, stops at the chosen speeds.
+- Without a file, the waveform lists the recordings opened lately, each with
+  a small picture of its waveform; a tap opens one.
+- The clock switches with a tap: the time played, the time left, and, with
+  a first beat, the bar and the beat.
 - Play, pause, stop, go to the start or to the end, back and forward by a
   skip length chosen in the menu (1 to 60 seconds; hold the button to keep
   going).
@@ -57,14 +68,17 @@ What it does
   with its R3 ("finer") engine. At 1× the file is played as it is, sample
   for sample. The button Speeds has the speeds of py-slowdown (50%, 75%,
   100%…). A lighter quality (half the processor) or the older R2 engine
-  (crisp attacks) can be chosen in the menu.
+  (crisp attacks) can be chosen in the menu. A speed changed from the
+  keyboard or a menu, or a pitch from the keyboard, is shown large on the
+  waveform for a moment.
 - Moves the pitch up or down in semitones (−12 to +12) and cents (−50 to
   +50), also while it plays; with "Keep the formants", a voice or an
   instrument keeps its timbre.
 - Repeats a selection without end and without a gap, or the whole file if
   there is none: hold a finger on the waveform and drag, or set its start and
-  end with A and B at the playing position. Selections can be kept as loops
-  with a name (Add, in the tab Loops).
+  end with A and B at the playing position, or take the whole file (menu >
+  Select the whole file, Ctrl+A). Selections can be kept as loops with a
+  name (Add, in the tab Loops).
 - The volume, up to 100% (the recording's), or more with Boost: the sound
   times 1.8, or the factor chosen in the menu (Volume boost: ×1.2 to ×3), as
   in py-slowdown; the knob turns red where the sound passes the recording's.
@@ -79,26 +93,38 @@ What it does
   that each one is beside its recording and travels with it to the
   computer and back.
 - A keyboard or a foot pedal that sends keys works with the keys of
-  py-slowdown (Space, ←/→, ↑/↓, B, I, O, L…), and the play button of
-  headphones plays and pauses.
+  py-slowdown (Space, ←/→, ↑/↓, B, I, O, L, Ctrl+A, Z, Ctrl+Shift+N…), and
+  the play button of headphones plays and pauses.
 - Interface in English and in Spanish, as the phone is set.
-
 - Plays on with the screen off, or with another app in front, with a media
   notification and the lock screen's controls.
-
 - Counts in before playing, as a metronome (the metronome button, or C;
   hold it for its settings): the number of clicks and the tempo are chosen,
   and the tempo can follow the speed and be measured by tapping with the
-  beat (T). With the recording's first beat marked (Shift+C), the recording
-  comes in on the nearest beat wherever playing starts.
-
-- Hears one part of the mix (menu > Hear): one channel, the two in one, the
-  mix without its centre (where the voice and the solo usually are), only
-  the bass, or everything but the bass.
-
+  beat (T); the button Tap shows the tempo tapped. With the recording's
+  first beat marked (Shift+C), the recording comes in on the nearest beat
+  wherever playing starts.
+- Hears one part of the mix (menu > Hear, or the tab Sound): one channel,
+  the two in one, the mix without its centre (where the voice and the solo
+  usually are), only the bass, or everything but the bass.
+- A five-band equalizer, that of py-slowdown, in the tab Sound (or menu >
+  Hear > Equalizer): 60 Hz, 250 Hz, 1 kHz, 4 kHz and 12 kHz, each from −12
+  to +12 dB, on knobs, with a curve of what it does, On (to compare), Flat,
+  and presets for music (Bass up, Hear the bass line, Voice and solos
+  forward, Bright, Warm, Cut the hiss) or one's own, saved by name. Each
+  file keeps it in its `.slx`. Menu > Reset the sound (Ctrl+Shift+N) puts
+  back the speed, the pitch, the channels, the filter and the equalizer of
+  the recording at once; the volume stays.
 - Exports the recording, or the selection, as it sounds (menu > Export the
-  audio): at the speed and pitch chosen, and as it is heard, if asked; in
-  WAV or M4A (AAC). (py-slowdown also writes FLAC, MP3 and Opus.)
+  audio): at the speed and pitch chosen, and as it is heard, if asked (the
+  channels, the filter, the equalizer and the volume); in WAV or M4A (AAC).
+  (py-slowdown also writes FLAC, MP3 and Opus.)
+- Imports the files of Transcribe! (menu > Import .xsc), as py-slowdown
+  does: their sections and named measures become bookmarks, and their
+  first beat and tempo, their loops, their selection, their speed and their
+  tuning are taken too, and kept from then on in the `.slx`. The path of the
+  recording in a `.xsc` is that of the computer, so the app uses the
+  recording open, if it has that name, or asks for it.
 
 Building
 --------
@@ -206,5 +232,10 @@ says what each one is for, and lists the tools that build the app. The
 sources of Rubber Band, minimp3, dr_flac and dr_wav are in
 [`third_party/`](third_party), as their authors publish them; of Rubber Band
 only its own files are compiled, not the code by others that it carries.
+
+How the files of Transcribe! keep their markers was learnt, by py-slowdown,
+from Rory O’Kane's
+[Transcribe-xsc-file-converter](https://github.com/roryokane/Transcribe-xsc-file-converter)
+(BlueOak-1.0.0); no code of it is used.
 
 Nicolas Vaughan, nicolasvaughan@proton.me

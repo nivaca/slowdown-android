@@ -40,7 +40,7 @@ RubberBandStretcher::Options options(int quality) {
     }
 }
 
-enum Kind { SEEK, SPEED, LOOP, PITCH, FORMANTS, QUALITY, HEARING };
+enum Kind { SEEK, SPEED, LOOP, PITCH, FORMANTS, QUALITY, HEARING, EQUALIZER };
 
 }  // namespace
 
@@ -366,6 +366,11 @@ bool Player::load(std::shared_ptr<Audio> audio) {
     renderer_->set_quality(quality_);
     hearing_ = std::make_unique<Hearing>(audio->rate);
     hearing_->set(hearing_channels_, hearing_filter_);
+    equalizer_ = std::make_unique<Equalizer>(audio->rate);
+    {
+        std::lock_guard<std::mutex> guard(lock_);
+        equalizer_->set(eq_gains_);
+    }
     {
         std::lock_guard<std::mutex> guard(lock_);
         loop_.reset();
@@ -530,6 +535,14 @@ void Player::set_hearing(int channels, int filter) {
     request(HEARING, channels, filter);
 }
 
+void Player::set_equalizer(const Gains& gains) {
+    {
+        std::lock_guard<std::mutex> guard(lock_);
+        eq_gains_ = eq_clamp(gains);
+    }
+    request(EQUALIZER);
+}
+
 void Player::set_quality(int quality) {
     quality_ = (quality >= QUALITY_HIGH && quality <= QUALITY_R2) ? quality : QUALITY_HIGH;
     request(QUALITY, quality_);
@@ -581,6 +594,7 @@ void Player::produce() {
     auto idle_since = std::chrono::steady_clock::now();
     while (true) {
         std::vector<Request> requests;
+        Gains gains{};
         {
             std::unique_lock<std::mutex> guard(lock_);
             while (running_ && (eof_ || queued_ >= target()) && requests_.empty()) {
@@ -599,6 +613,7 @@ void Player::produce() {
             }
             if (!running_) return;
             requests.swap(requests_);
+            gains = eq_gains_;
         }
         for (const Request& r : requests) {
             switch (r.kind) {
@@ -612,6 +627,7 @@ void Player::produce() {
                 case FORMANTS: renderer.set_formants(r.a != 0); break;
                 case QUALITY: renderer.set_quality(int(r.a)); break;
                 case HEARING: if (hearing_) hearing_->set(int(r.a), int(r.b)); break;
+                case EQUALIZER: if (equalizer_) equalizer_->set(gains); break;
             }
         }
         bool seam = false;
@@ -619,6 +635,10 @@ void Player::produce() {
         if (block && block->size() && hearing_) {
             if (seam) hearing_->reset();  // (lo de antes del corte no se mezcla con lo que sigue)
             hearing_->process(block->frames, block->channels);
+        }
+        if (block && block->size() && equalizer_) {
+            if (seam) equalizer_->reset();
+            equalizer_->process(block->frames, block->channels);
         }
         std::unique_lock<std::mutex> guard(lock_);
         bool seek_pending = std::any_of(requests_.begin(), requests_.end(), [](const Request& r) { return r.kind == SEEK; });

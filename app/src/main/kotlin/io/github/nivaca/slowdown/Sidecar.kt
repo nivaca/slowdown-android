@@ -3,7 +3,7 @@
  * Cómo se tocó cada archivo, en un archivo .slx, el mismo de py-slowdown.
  *
  * El .slx es un XML con la posición, la velocidad, la altura, la manera de oír,
- * la selección, la cuenta previa, los marcadores y los bucles de un archivo de
+ * el ecualizador, la selección, la cuenta previa, los marcadores y los bucles de un archivo de
  * audio. En el teléfono se guardan en una carpeta de la aplicación, con los
  * nombres que les da py-slowdown (canción.slx, canción.mp3.slx o
  * canción.mp3.LETRAS.slx): uno escrito aquí se puede abrir en el ordenador, y al
@@ -37,6 +37,8 @@ data class Session(
     var formants: Boolean = false,
     var channels: String = "both",
     var filter: String = "none",
+    var eq: List<Int> = Equalizer.FLAT,  // las cinco bandas, en dB
+    var eqOn: Boolean = true,  // (apagado, las ganancias se guardan pero no suenan)
     var volume: Int? = null,
     var selection: Pair<Double, Double>? = null,
     var repeat: Boolean = false,
@@ -145,6 +147,13 @@ object Sidecar {
             session.channels = it.getAttribute("channels").ifEmpty { "both" }
             session.filter = it.getAttribute("filter").ifEmpty { "none" }
         }
+        child(root, "equalizer")?.let {
+            val gains = it.getAttribute("gains").trim().split(Regex("\\s+")).mapNotNull(String::toIntOrNull)
+            if (gains.size == Equalizer.BANDS.size && gains.any { g -> g != 0 }) {
+                session.eq = Equalizer.clamp(gains)
+                session.eqOn = it.getAttribute("on").lowercase() !in setOf("false", "0", "no")
+            }
+        }
         child(root, "selection")?.let {
             val start = number(it, "start", -1.0)
             val end = number(it, "end", -1.0)
@@ -206,6 +215,10 @@ object Sidecar {
         w.append("  <playback speed=\"${text(session.speed)}\" pitch=\"${text(session.pitch)}\" " +
             "formants=\"${session.formants}\" />\n")
         w.append("  <hearing channels=\"${escape(session.channels)}\" filter=\"${escape(session.filter)}\" />\n")
+        if (!Equalizer.isFlat(session.eq)) {
+            // (las cinco bandas, de 60 Hz a 12 kHz, en dB)
+            w.append("  <equalizer gains=\"${session.eq.joinToString(" ")}\" on=\"${session.eqOn}\" />\n")
+        }
         session.volume?.let { w.append("  <volume percent=\"$it\" />\n") }
         session.selection?.let { (start, end) ->
             w.append("  <selection start=\"${text(start)}\" end=\"${text(end)}\" repeat=\"${session.repeat}\" />\n")

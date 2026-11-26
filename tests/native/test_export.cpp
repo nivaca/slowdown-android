@@ -77,5 +77,17 @@ int main() {
     s.filter = BASS;
     frames = run(audio, s, "bass", out);
     CHECK(frames == 44100);
+    // Con el ecualizador, el mismo largo, y en su lugar: sin su retraso (el tono de la izquierda, 440 Hz, sube
+    // lo que dice la curva allí)
+    s.filter = NONE;
+    s.eq = Gains{0, 0, 6, 0, 0};
+    frames = run(audio, s, "eq", out);
+    CHECK(frames == 44100);
+    double lift = std::pow(10.0, eq_response(s.eq, 440) / 20);
+    worst = 0;
+    for (int i = 4000; i < 40000; ++i)
+        worst = std::max(worst, std::abs(int(out[size_t(2 * i)]) -
+                                         int(std::lrint(original[size_t(2 * (22050 + i))] * lift * 32767.0f))));
+    CHECK(worst < 600);
     return finish();
 }

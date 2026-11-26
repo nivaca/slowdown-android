@@ -33,6 +33,14 @@ object CountInRules {
         return (offset * 1000).roundToLong() / 1000.0
     }
 
+    /** (bar, beat), from 1, of POSITION (seconds) in a recording whose first beat is at FIRST, at BPM, with PER_BAR
+     * beats in a bar; null before the first beat (as py-slowdown's clock). */
+    fun barAndBeat(position: Double, first: Double, bpm: Double, perBar: Int): Pair<Int, Int>? {
+        if (position < first - 0.02 || bpm <= 0 || perBar < 1) return null
+        val beats = (maxOf(0.0, position - first) * bpm / 60.0 + 1e-6).toInt()
+        return beats / perBar + 1 to beats % perBar + 1
+    }
+
     /** The tempo of the recording, from the tempo HEARD at SPEED: following the speed, what was tapped at 0.75×
      * is the recording's tempo times 0.75. */
     fun recordingTempo(heard: Double, speed: Double, follow: Boolean): Int =

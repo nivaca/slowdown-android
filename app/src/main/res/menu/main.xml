@@ -16,8 +16,12 @@
                 <item android:id="@+id/hear_bass" android:title="@string/hear_bass" />
                 <item android:id="@+id/hear_no_bass" android:title="@string/hear_no_bass" />
             </group>
+            <item android:id="@+id/hear_equalizer" android:title="@string/equalizer_menu" />
         </menu>
     </item>
+    <item android:id="@+id/reset_sound" android:title="@string/reset_sound" />
+    <item android:id="@+id/select_all" android:title="@string/select_all" />
+    <item android:id="@+id/zoom_selection" android:title="@string/zoom_selection" />
     <item android:id="@+id/formants" android:checkable="true" android:title="@string/keep_formants" />
     <item android:id="@+id/quality" android:title="@string/quality">
         <menu>
@@ -38,6 +42,7 @@
     <item android:id="@+id/export_audio" android:title="@string/export_audio" />
     <item android:id="@+id/export_slx" android:title="@string/export_slx" />
     <item android:id="@+id/import_slx" android:title="@string/import_slx" />
+    <item android:id="@+id/import_xsc" android:title="@string/import_xsc" />
     <item android:id="@+id/slx_folder" android:title="@string/slx_folder" />
     <item android:id="@+id/close" android:title="@string/close" />
     <item android:id="@+id/licenses" android:title="@string/licenses" />

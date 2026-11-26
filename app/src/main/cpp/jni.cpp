@@ -2,6 +2,7 @@
 // El puente entre Kotlin (Engine.kt) y el motor: un solo reproductor para toda la aplicación.
 #include <jni.h>
 
+#include <algorithm>
 #include <mutex>
 #include <string>
 
@@ -23,6 +24,15 @@ std::unique_ptr<Decoder> decoder;
 
 std::shared_ptr<Audio> audio() { return player()->audio(); }
 std::unique_ptr<Export> job;  // la exportación en curso, o la última
+
+// Las cinco ganancias del ecualizador, de un int[] de Kotlin (las que falten, 0)
+Gains gains_of(JNIEnv* env, jintArray array) {
+    Gains gains{};
+    if (!array) return gains;
+    jsize n = std::min<jsize>(env->GetArrayLength(array), EQ_BANDS);
+    env->GetIntArrayRegion(array, 0, n, gains.data());
+    return gains;
+}
 
 }  // namespace
 
@@ -75,6 +85,9 @@ FN(void, setPitch)(JNIEnv*, jobject, jdouble semitones) { player()->set_pitch(se
 FN(void, setFormants)(JNIEnv*, jobject, jboolean on) { player()->set_formants(on); }
 FN(void, setQuality)(JNIEnv*, jobject, jint quality) { player()->set_quality(quality); }
 FN(void, setHearing)(JNIEnv*, jobject, jint channels, jint filter) { player()->set_hearing(channels, filter); }
+FN(void, setEqualizer)(JNIEnv* env, jobject, jintArray gains) {
+    player()->set_equalizer(gains_of(env, gains));
+}
 FN(void, setVolume)(JNIEnv*, jobject, jdouble volume) { player()->set_volume(volume); }
 
 FN(void, setLoop)(JNIEnv*, jobject, jdouble start, jdouble end) {
@@ -92,7 +105,7 @@ FN(jint, counting)(JNIEnv*, jobject) {
 
 // La exportación: empieza en un hilo; su avance (0 a 1), si terminó, su error, cancelarla
 FN(jstring, exportStart)(JNIEnv* env, jobject, jint fd, jint format, jdouble start, jdouble end, jdouble speed,
-                         jdouble pitch, jboolean formants, jint quality, jint channels, jint filter, jdouble gain) {
+                         jdouble pitch, jboolean formants, jint quality, jint channels, jint filter, jintArray eq, jdouble gain) {
     auto a = audio();
     if (!a) return env->NewStringUTF("no file");
     job.reset();
@@ -106,6 +119,7 @@ FN(jstring, exportStart)(JNIEnv* env, jobject, jint fd, jint format, jdouble sta
     s.quality = quality;
     s.channels = channels;
     s.filter = filter;
+    s.eq = gains_of(env, eq);
     s.gain = gain;
     job = start_export(a, fd, s);
     return nullptr;

@@ -68,6 +68,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:contentDescription="@string/position_length"
+            android:background="?android:attr/selectableItemBackground"
             android:fontFamily="monospace"
             android:text="0:00.0 / 0:00.0"
             android:textColor="?android:attr/textColorPrimary"
@@ -161,6 +162,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:paddingStart="4dp"
+            android:id="@+id/panel_title"
             android:text="@string/bookmarks_and_loops"
             android:textAppearance="?android:attr/textAppearanceSmall"
             android:textColor="?android:attr/textColorSecondary" />
@@ -172,7 +174,82 @@
 
             <TextView android:id="@+id/tab_bookmarks" style="@style/Tab" android:text="@string/bookmarks" />
             <TextView android:id="@+id/tab_loops" style="@style/Tab" android:text="@string/loops" />
+            <TextView android:id="@+id/tab_sound" style="@style/Tab" android:text="@string/sound" />
         </LinearLayout>
+
+        <!-- El panel Sonido, en lugar de la tabla: los canales y el filtro (como el menú Oír) y el ecualizador -->
+        <ScrollView
+            android:id="@+id/sound_panel"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingTop="4dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView style="@style/KnobLabel" android:layout_width="96dp" android:text="@string/channels" />
+                    <Spinner android:id="@+id/channels" android:layout_width="0dp" android:layout_height="44dp"
+                        android:layout_weight="1" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView style="@style/KnobLabel" android:layout_width="96dp" android:text="@string/filter" />
+                    <Spinner android:id="@+id/filter" android:layout_width="0dp" android:layout_height="44dp"
+                        android:layout_weight="1" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingTop="6dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:paddingStart="4dp"
+                        android:text="@string/equalizer"
+                        android:textColor="?android:attr/textColorPrimary"
+                        android:textStyle="bold" />
+                    <CheckBox android:id="@+id/eq_on" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="@string/eq_on" android:textSize="13sp" />
+                    <Button android:id="@+id/eq_flat" style="@style/SmallButton" android:text="@string/eq_flat" />
+                    <Button android:id="@+id/eq_presets" style="@style/SmallButton" android:text="@string/eq_presets" />
+                </LinearLayout>
+
+                <io.github.nivaca.slowdown.EqCurve
+                    android:id="@+id/eq_curve"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="4dp"
+                    android:contentDescription="@string/eq_curve" />
+
+                <LinearLayout
+                    android:id="@+id/eq_knobs"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:orientation="horizontal"
+                    android:paddingTop="4dp" />
+            </LinearLayout>
+        </ScrollView>
 
         <LinearLayout
             android:id="@+id/table"
@@ -215,6 +292,7 @@
         </LinearLayout>
 
         <LinearLayout
+            android:id="@+id/panel_buttons"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"

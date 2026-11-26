@@ -7,6 +7,60 @@ Los cambios de Slowdown, la versión para Android de
 
 ## Sin publicar
 
+Lo que py-slowdown ganó en sus versiones 1.4 a 1.6, donde cabe en un teléfono.
+
+- **Un ecualizador de cinco bandas**, el de py-slowdown, en una pestaña
+  nueva del panel, Sonido (también menú > Oír > Ecualizador): 60 Hz, 250 Hz,
+  1 kHz, 4 kHz y 12 kHz, cada una de −12 a +12 dB, en perillas, con una curva
+  de lo que hace de 20 Hz a 20 kHz, Encendido (para comparar), Plano y
+  Ajustes: los de py-slowdown para la música (Más graves, Oír la línea del
+  bajo, La voz y los solos adelante, Brillante, Cálido, Sin el siseo) y los
+  propios, guardados con un nombre y quitados otra vez. Es el mismo filtro
+  de fase lineal del ordenador, que el motor aplica bloque tras bloque, con
+  un fundido cuando cambia. Cada archivo lo guarda en su `.slx`, en el mismo
+  `<equalizer>` de py-slowdown; una exportación como se oye lo aplica, sin
+  sus 40 ms de retraso. La pestaña Sonido tiene también los canales y el
+  filtro del menú Oír, y los dos dicen siempre lo mismo; dice «· EQ»
+  mientras el ecualizador cambia el sonido.
+- **Deshacer los cambios del sonido** (menú, o Ctrl+Mayús+N): velocidad
+  100 %, la altura de la grabación, sin formantes, los dos canales sin
+  filtro y el ecualizador plano, de una vez; el volumen se queda.
+- **Los bucles sobre la onda**: cada bucle guardado es una banda de su
+  color al pie de la onda, con su nombre; un toque en ella lo elige, lo
+  repite y va a su principio.
+- **El archivo entero sobre una vista de cerca**: con la onda acercada, una
+  franja encima muestra el archivo entero, la parte que se ve sombreada y
+  la posición en rojo; un toque o un arrastre allí muestra esa parte, sin
+  mover la posición. Una vista corrida a mano ya no vuelve de un salto a la
+  posición mientras está en pausa.
+- **Acercar a la selección** (menú, o Z) y **Seleccionar el archivo
+  entero** (menú, o Ctrl+A).
+- **Una pantalla de inicio**: sin un archivo, la onda muestra las
+  grabaciones abiertas hace poco, cada una con una figura pequeña de su
+  onda; un toque abre una; la que ya no está aparece en gris.
+- **Un reloj que cambia**: un toque en el tiempo muestra el que falta y, con
+  un primer pulso, el compás y el pulso (al tempo de la cuenta previa, con
+  tantos pulsos por compás como golpes tiene); se recuerda.
+- **Un menú en cada perilla**: con el dedo quieto sobre una perilla,
+  aparecen sus valores de costumbre (las velocidades elegidas; los
+  intervalos de 1, 2, 3, 5, 7 y 12 semitonos; pasos de cents, de volumen y
+  de decibeles), marcado el de ahora, y Volver al de siempre.
+- **La perilla de la velocidad se detiene en las velocidades elegidas**:
+  arrastrada, se queda en una de la lista (50 %, 75 %, 100 %…) mientras pasa
+  a pocos grados de ella.
+- **El valor recién cambiado, en grande sobre la onda**: una velocidad
+  cambiada con el teclado, con 1× o con el menú de las velocidades, o una
+  altura cambiada con el teclado, se muestra en el medio de la onda por un
+  momento, y luego se desvanece.
+- **Archivos de Transcribe!** (`.xsc`): menú > Importar .xsc toma sus
+  secciones y sus compases con nombre como marcadores, su primer pulso y el
+  tempo de sus pulsos, sus bucles, su selección, su velocidad y su
+  afinación, que el `.slx` guarda desde entonces. El `.xsc` nombra su
+  grabación con una ruta del ordenador, así que la aplicación toma la
+  grabación abierta, si tiene ese nombre, o la pide.
+- **Marcar** (en los ajustes de la cuenta previa) muestra el tempo marcado
+  («120 BPM»), hasta que se abre otro archivo.
+
 - `tools/zenodo.py`: la descripción del depósito es ahora el README entero
   de la etiqueta, en HTML. El borrador recibe además el colaborador (el
   director del proyecto), los idiomas, el copyright, el repositorio en

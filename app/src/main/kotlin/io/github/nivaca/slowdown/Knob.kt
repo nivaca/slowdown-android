@@ -9,8 +9,11 @@
  *
  * Con el dedo: arrastrar hacia arriba o a la derecha la sube, hacia abajo o a
  * la izquierda la baja (en el ordenador la raya sigue al ratón, pero una
- * perilla pequeña queda bajo el dedo); un doble toque la devuelve a HOME. Los
- * valores por encima de WARN se dibujan en rojo.
+ * perilla pequeña queda bajo el dedo); un doble toque la devuelve a HOME, y
+ * mantener el dedo sin moverlo abre su menú (onMenu: sus valores de costumbre).
+ * Arrastrada, se detiene en los valores de DETENTS cuando pasa a menos de
+ * DETENT grados de uno (la velocidad, en las elegidas). Los valores por encima
+ * de WARN se dibujan en rojo.
  */
 package io.github.nivaca.slowdown
 
@@ -39,6 +42,8 @@ class Knob(context: Context, attrs: AttributeSet? = null) : View(context, attrs)
         set(value) { field = value; invalidate() }
     var format: (Int) -> String = { "$it" }
     var onChange: ((Int) -> Unit)? = null
+    var onMenu: ((Knob) -> Unit)? = null
+    var detents: List<Int> = emptyList()  // donde se detiene al arrastrarla
 
     var value = 0
         private set
@@ -80,6 +85,13 @@ class Knob(context: Context, attrs: AttributeSet? = null) : View(context, attrs)
             val share = if (maximum > t) (v - t) / (maximum - t) else 0.0
             90.0 - share * (90.0 - HIGHEST)
         }
+    }
+
+    /** The value of dragging to V: V, or a detent within DETENT degrees of it. */
+    fun detained(v: Int): Int {
+        val here = degrees(v.toDouble())
+        return detents.filter { it in minimum..maximum && kotlin.math.abs(degrees(it.toDouble()) - here) <= DETENT }
+            .minByOrNull { kotlin.math.abs(degrees(it.toDouble()) - here) } ?: v
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -134,7 +146,15 @@ class Knob(context: Context, attrs: AttributeSet? = null) : View(context, attrs)
             performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
             return true
         }
+
+        override fun onLongPress(e: MotionEvent) {
+            if (dragging || onMenu == null) return
+            menuShown = true
+            performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+            onMenu?.invoke(this@Knob)
+        }
     })
+    private var menuShown = false
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (!isEnabled) return false
@@ -145,15 +165,18 @@ class Knob(context: Context, attrs: AttributeSet? = null) : View(context, attrs)
                 startY = event.y
                 startValue = value
                 dragging = false
+                menuShown = false
                 parent?.requestDisallowInterceptTouchEvent(true)
             }
             MotionEvent.ACTION_MOVE -> {
                 val moved = (event.x - startX) + (startY - event.y)
-                if (!dragging && kotlin.math.abs(moved) > 4 * density) dragging = true
+                if (!dragging && !menuShown && kotlin.math.abs(moved) > 4 * density) dragging = true
                 if (dragging) {
                     val before = value
-                    set(startValue + (moved * perPixel()).roundToInt())
-                    if (value != before && ticks.contains(value)) performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                    set(detained((startValue + (moved * perPixel()).roundToInt()).coerceIn(minimum, maximum)))
+                    if (value != before && (value in ticks || value in detents)) {
+                        performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                    }
                 }
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> parent?.requestDisallowInterceptTouchEvent(false)
@@ -170,5 +193,6 @@ class Knob(context: Context, attrs: AttributeSet? = null) : View(context, attrs)
         const val LOWEST = 240.0
         const val HIGHEST = -60.0
         const val SIZE_DP = 56
+        const val DETENT = 4.0  // grados: a esa distancia de un valor de DETENTS, la perilla arrastrada se queda en él
     }
 }

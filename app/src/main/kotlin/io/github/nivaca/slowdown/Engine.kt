@@ -51,6 +51,10 @@ object Engine {
      * 1 only the bass, 2 without the bass. */
     external fun setHearing(channels: Int, filter: Int)
 
+    /** The equalizer: the gains of its five bands (60 Hz, 250 Hz, 1 kHz, 4 kHz, 12 kHz), from -12 to +12 dB;
+     * all 0, nothing. */
+    external fun setEqualizer(gains: IntArray)
+
     /** Repeat from START to END seconds, without a gap; START < 0: no longer. */
     external fun setLoop(start: Double, end: Double)
     external fun looping(): Boolean
@@ -58,7 +62,8 @@ object Engine {
     /** Exports to FD (FORMAT 0 WAV, 1 M4A) from START to END seconds (END < 0: to the end), in a thread; null, or
      * why it could not start. */
     external fun exportStart(fd: Int, format: Int, start: Double, end: Double, speed: Double, pitch: Double,
-                             formants: Boolean, quality: Int, channels: Int, filter: Int, gain: Double): String?
+                             formants: Boolean, quality: Int, channels: Int, filter: Int, eq: IntArray,
+                             gain: Double): String?
     external fun exportProgress(): Double
     external fun exportDone(): Boolean
     external fun exportError(): String?

@@ -51,6 +51,18 @@ decoded by Android's codecs. These belong to the phone's system, not to the
 APK.
 
 
+What it learnt from other programs
+----------------------------------
+
+| Software | Licence | What Slowdown owes it |
+|---|---|---|
+| [Transcribe-xsc-file-converter](https://github.com/roryokane/Transcribe-xsc-file-converter), by Rory O’Kane | BlueOak-1.0.0 | How the markers are written in the files of Transcribe! (`.xsc`), which Slowdown imports (`Transcribe.kt`, after py-slowdown's `transcribe.py`) |
+
+No code of it is in Slowdown: py-slowdown read its parser to learn the
+format, which Seventh String Software, the makers of Transcribe!, do not
+publish, and Slowdown follows py-slowdown.
+
+
 Tools that build and test it
 ----------------------------
 

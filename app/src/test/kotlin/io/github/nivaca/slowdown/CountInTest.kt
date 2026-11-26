@@ -45,4 +45,14 @@ class CountInTest {
         assertNull(tap.tap(20.0))
         assertEquals(1, tap.taps)
     }
+
+    @Test
+    fun barsAndBeats() {
+        // Primer pulso en 1,0 s, 120 BPM, cuatro pulsos por compás
+        assertNull(CountInRules.barAndBeat(0.5, 1.0, 120.0, 4))
+        assertEquals(1 to 1, CountInRules.barAndBeat(1.0, 1.0, 120.0, 4))
+        assertEquals(1 to 4, CountInRules.barAndBeat(2.75, 1.0, 120.0, 4))
+        assertEquals(2 to 1, CountInRules.barAndBeat(3.0, 1.0, 120.0, 4))
+        assertEquals(1 to 1, CountInRules.barAndBeat(0.99, 1.0, 120.0, 4))  // (un poco antes, todavía el primero)
+    }
 }

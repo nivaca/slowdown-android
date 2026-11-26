@@ -6,7 +6,7 @@ Android phone. It is for practising music and learning it by ear. Nicolas
 Vaughan made it in November 2026, as the Android version of py-slowdown,
 his program for the desktop (Python and Qt): the engine of py-slowdown was
 translated into C++, and the window was written again for a phone;
-the current one is 1.2. Here I explain how it was made, in five stages.
+the current one is 1.2. Here I explain how it was made, in six stages.
 
 Slowdown is free software, under the GNU General Public License, version 3
 or later. It carries the Rubber Band Library 4.0.0, by Particular Programs
@@ -16,7 +16,10 @@ dr_wav, by David Reid (Unlicense or MIT No Attribution); the Kotlin
 standard library (Apache License 2.0); LLVM's libc++, linked into the
 engine (Apache License 2.0 with the LLVM exceptions); and the shapes of
 Google's Material Icons (Apache License 2.0). `docs/THIRD-PARTY.md` lists
-them, with the tools that build the app.
+them, with the tools that build the app. How the files of Transcribe! keep their
+markers was learnt, for py-slowdown, from Rory O'Kane's
+Transcribe-xsc-file-converter (Blue Oak Model License 1.0.0), without
+taking any of its code.
 
 Nicolas Vaughan is Associate Professor of Literature at the School of Arts
 and Humanities of the Universidad de los Andes, Bogotá, Colombia.
@@ -214,10 +217,63 @@ several codecs at once Android's service gave samples that changed from
 one run to the next, and at times it refused a second codec. So the AAC is
 read by one codec, as before.
 
+6. What the desktop gained
+--------------------------
+
+While the phone got the things of stage 5, py-slowdown went on, from 1.3
+to 1.6, with an equalizer, knobs with menus, the loops on the waveform, a
+start screen, the files of Transcribe! and other smaller things. I went
+through the list and asked of each one whether a phone can have it.
+
+Most of it could come. The equalizer is `equalizer.py` in C++, as the ways
+of hearing had been: the five gains are points of a curve, the curve
+becomes a linear-phase filter of 80 ms, and the filter is applied with
+Rubber Band's FFT, block after block, with a fade when the gains change.
+NumPy's `irfft` and `hanning` had to be written out by hand, and a test
+checks that each band lifts its own frequency by what it says and that the
+blocks give the same as one convolution. The player takes the gains from
+the window under its lock and applies them after the ways of hearing, as
+the desktop does; the export makes up the delay of both filters. On the
+desktop the equalizer lives in a panel Sound at the side of the window; on
+the phone there is no side, so Sound became a third tab of the panel
+below, with the channels and the filter of the menu Hear, and the five
+knobs under a curve drawn from the same formula as the engine's.
+
+The rest was mostly the window. The loops are drawn at the foot of the
+waveform, in the colours of Okabe and Ito; zoomed in, a strip above shows
+the whole file. Here I found that a view moved by hand jumped back to the
+position at the next frame, even in pause: the view followed the position
+on every frame, not only when the position moved. The knobs got a menu (on
+the phone, a finger held still, since there is no right button) and the
+speed knob its detents; the clock switches with a tap; a value changed from
+the keyboard is shown large on the waveform. The start screen keeps a
+small summary of each recording's waveform in the preferences, because the
+app has no cache of peaks as the desktop has.
+
+The files of Transcribe! needed one change of approach. On the desktop a
+`.xsc` names its recording by a full path, and py-slowdown opens it, or the
+file of the same name beside the `.xsc`. On a phone neither path means
+anything, since files come through Android's picker; so the app takes the
+recording already open, if it has that name, and otherwise asks for it.
+The reader itself is `transcribe.py` in Kotlin, and its test reads the
+same `.xsc` as py-slowdown's test.
+
+Some things did not come. Compact mode is a small window always on top of
+the others, which a phone does not have. The arrow of Save and the question
+before closing a file make no sense where everything is saved as it is
+done. The knobs reached with Tab, and the program's own icons for the
+buttons, which on the desktop replaced Qt's icons, had no use here: the
+app already draws Material's shapes in the theme's colours.
+
+One more problem came from Android's classes. The names on the start
+screen came out tiny: `TextPaint` has a field `density` of its own, and in
+Kotlin a block `apply { textSize = 14 * density }` took that one, which is
+1, instead of the screen's.
+
 Testing
 -------
 
-There are 29 tests. Six are programs in C++ that test the
+There are 60 tests. Seven are programs in C++ that test the
 engine compiled for the computer, run by CTest: the audio in memory (its
 chunks, reading across them, the peaks of the waveform), the renderer (the
 copy bit for bit at 1×; the length and the pitch of the stretched sound at
@@ -230,15 +286,20 @@ WAV mixed down to stereo), the ways of hearing (the kernels of the filters,
 the channels, the bass with and without, and that block after block gives
 the same as the whole filter at once), and the export (a valid WAV, the
 same samples at 1×, twice as long at 0.5×, a selection, and the filter's
-delay made up). Twenty-three tests in Kotlin, run on the JVM, check the
+delay made up, also with the equalizer), and the equalizer (its curve,
+each band's gain, flat untouched, the blocks a convolution, a change
+without a click). Thirty-five tests in Kotlin, run on the JVM, check the
 `.slx` (that one written by py-slowdown is read, that what is written is
 read back, the numbers written as Python writes them, the names of the
 files and how the right one is found, the whole file repeated), the
 bookmarks exported as text, the format of the times and of the boost
 factors, that the licences in the app, in `LICENSES/` and in the documents
 agree, how their texts are fitted to the screen, the `.slx` in any folder,
-and the rules of the count-in. `tools/test.sh` runs both at once,
-each test in a process of its own.
+the rules of the count-in and its bars and beats, the equalizer's curve,
+its presets and its place in the `.slx`, the files of Transcribe!, and the
+recent recordings. Eighteen tests in Python check the tools of the release
+(`tools/zenodo.py`). `tools/test.sh` runs the three kinds at once, each
+test in a process of its own.
 
 The tests of the engine were also compiled for the phone and run there,
 and two small programs measured on it the speed of Rubber Band and of the
@@ -251,9 +312,16 @@ read from there first; playing on with the screen off and in another app,
 and the media keys; the count-in, its beat on the waveform and its dialog;
 the ways of hearing at 0.6× with the pitch raised (no underrun); and an
 export to WAV and to M4A, checked with ffprobe and decoded by FFmpeg.
+The things of stage 6 were tried on Android's emulator (an x86_64 image of
+Android 16, which runs the ARM engine by translation), since the phone had
+a build signed with another key: the tab Sound and a preset while playing,
+the `.slx` with its `<equalizer>`, a loop on the waveform, zooming to the
+selection with the strip of the whole file, the value shown large, the
+clock, a knob's menu, the start screen, and a `.xsc` imported through the
+picker.
 
 Without the libraries in `third_party/`, the texts of `LICENSES/` and the
-documentation, Slowdown has 89 files of its own (code, layouts, texts,
-build files, the store texts, tests and tools) with about 8,300 lines: 2,490
-of C++ in the engine, 2,960 of Kotlin in the window, 1,000 in the tests and
-770 in the tools.
+documentation, Slowdown has 106 files of its own (code, layouts, texts,
+build files, the store texts, tests and tools) with about 12,100 lines:
+2,790 of C++ in the engine, 4,010 of Kotlin in the window, 1,770 in the
+tests and 1,610 in the tools.

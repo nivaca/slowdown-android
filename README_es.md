@@ -46,11 +46,23 @@ Qué hace
   (claros u oscuros, según el teléfono): la onda, más oscura donde ya sonó,
   con la posición en rojo y los marcadores en naranja; debajo, los botones de
   la reproducción y el tiempo; las perillas de la velocidad, el volumen y la
-  altura, y el panel de los marcadores y los bucles, con sus dos pestañas. Un
-  toque en la onda lleva la posición allí; arrastrar desplaza la vista;
-  pellizcar acerca o aleja alrededor de los dedos. Una perilla se gira
-  arrastrando hacia arriba o a la derecha (hacia abajo o a la izquierda, al
-  revés), y vuelve a su valor de siempre con un doble toque.
+  altura, y el panel de los marcadores, los bucles y el sonido, con sus tres
+  pestañas. Los bucles guardados se dibujan al pie de la onda, cada uno una
+  banda de su color con su nombre (un toque en uno lo repite); de cerca, una
+  franja arriba muestra el archivo entero, con la parte que se ve sombreada
+  (un toque o un arrastre allí muestra esa parte). Un toque en la onda lleva
+  la posición allí; arrastrar desplaza la vista; pellizcar acerca o aleja
+  alrededor de los dedos, y menú > Acercar a la selección (Z) muestra solo
+  la selección. Una perilla se gira arrastrando hacia arriba o a la derecha
+  (hacia abajo o a la izquierda, al revés), vuelve a su valor de siempre con
+  un doble toque y, si se mantiene el dedo quieto sobre ella, ofrece sus
+  valores de costumbre (las velocidades elegidas, los intervalos de 1, 2, 3,
+  5, 7 y 12 semitonos…). La perilla de la velocidad, arrastrada, se detiene
+  en las velocidades elegidas.
+- Sin un archivo, la onda muestra las grabaciones abiertas hace poco, cada
+  una con una figura pequeña de su onda; un toque abre una.
+- El reloj cambia con un toque: el tiempo tocado, el que falta y, con un
+  primer pulso, el compás y el pulso.
 - Tocar, pausar, detener, ir al principio o al final, atrás y adelante según una
   longitud del salto que se elige en el menú (de 1 a 60 segundos; mantenga
   apretado el botón para seguir).
@@ -59,14 +71,17 @@ Qué hace
   con su motor R3 («finer»). A 1× el archivo suena tal cual, muestra por
   muestra. El botón Velocidades tiene las de py-slowdown (50 %, 75 %,
   100 %…). En el menú se puede elegir una calidad ligera (la mitad del
-  procesador) o el motor anterior, R2 (ataques nítidos).
+  procesador) o el motor anterior, R2 (ataques nítidos). Una velocidad
+  cambiada con el teclado o con un menú, o una altura cambiada con el
+  teclado, se muestra en grande sobre la onda por un momento.
 - Sube o baja la altura en semitonos (de −12 a +12) y cents (de −50 a +50),
   también mientras suena; con «Conservar los formantes», una voz o un
   instrumento conserva su timbre.
 - Repite una selección sin fin y sin hueco, o el archivo entero si no hay:
   mantenga un dedo sobre la onda y arrástrelo, o ponga su principio y su
-  final con A y B en la posición. Las selecciones se pueden guardar como
-  bucles con un nombre (Añadir, en la pestaña Bucles).
+  final con A y B en la posición, o tome el archivo entero (menú >
+  Seleccionar el archivo entero, Ctrl+A). Las selecciones se pueden guardar
+  como bucles con un nombre (Añadir, en la pestaña Bucles).
 - El volumen, hasta 100 % (el de la grabación), o más con el Refuerzo: el
   sonido por 1,8, o por lo que se elija en el menú (Refuerzo del volumen: de
   ×1,2 a ×3), como en py-slowdown; la perilla se pone roja donde el sonido
@@ -82,26 +97,39 @@ Qué hace
   para que cada uno quede junto a su grabación y viaje con ella al
   ordenador y de vuelta.
 - Un teclado, o un pedal que mande teclas, funciona con las teclas de
-  py-slowdown (Espacio, ←/→, ↑/↓, B, I, O, L…), y el botón de los
-  auriculares toca y pausa.
+  py-slowdown (Espacio, ←/→, ↑/↓, B, I, O, L, Ctrl+A, Z, Ctrl+Mayús+N…), y
+  el botón de los auriculares toca y pausa.
 - Interfaz en inglés y en español, según el idioma del teléfono.
-
 - Sigue sonando con la pantalla apagada, o con otra aplicación delante, con
   una notificación y los mandos de la pantalla de bloqueo.
-
 - Cuenta antes de tocar, como un metrónomo (el botón del metrónomo, o C;
   manténgalo apretado para sus ajustes): se eligen el número de golpes y el
-  tempo, que puede seguir la velocidad y medirse marcando el pulso (T). Con
-  el primer pulso de la grabación marcado (Mayús+C), la grabación entra en
-  el pulso más cercano donde sea que empiece a sonar.
-
-- Oye una parte de la mezcla (menú > Oír): un canal, los dos en uno, la
-  mezcla sin su centro (donde suelen estar la voz y el solo), solo los
-  graves o todo menos los graves.
-
+  tempo, que puede seguir la velocidad y medirse marcando el pulso (T); el
+  botón Marcar muestra el tempo marcado. Con el primer pulso de la
+  grabación marcado (Mayús+C), la grabación entra en el pulso más cercano
+  donde sea que empiece a sonar.
+- Oye una parte de la mezcla (menú > Oír, o la pestaña Sonido): un canal,
+  los dos en uno, la mezcla sin su centro (donde suelen estar la voz y el
+  solo), solo los graves o todo menos los graves.
+- Un ecualizador de cinco bandas, el de py-slowdown, en la pestaña Sonido
+  (o menú > Oír > Ecualizador): 60 Hz, 250 Hz, 1 kHz, 4 kHz y 12 kHz, cada
+  una de −12 a +12 dB, en perillas, con una curva de lo que hace, Encendido
+  (para comparar), Plano y ajustes para la música (Más graves, Oír la línea
+  del bajo, La voz y los solos adelante, Brillante, Cálido, Sin el siseo) o
+  propios, guardados con un nombre. Cada archivo lo guarda en su `.slx`.
+  Menú > Deshacer los cambios del sonido (Ctrl+Mayús+N) devuelve de una vez
+  la velocidad, la altura, los canales, el filtro y el ecualizador de la
+  grabación; el volumen se queda.
 - Exporta la grabación, o la selección, como suena (menú > Exportar el
-  audio): a la velocidad y la altura elegidas, y como se oye, si se pide; en
-  WAV o M4A (AAC). (py-slowdown escribe además FLAC, MP3 y Opus.)
+  audio): a la velocidad y la altura elegidas, y como se oye, si se pide
+  (los canales, el filtro, el ecualizador y el volumen); en WAV o M4A (AAC).
+  (py-slowdown escribe además FLAC, MP3 y Opus.)
+- Importa los archivos de Transcribe! (menú > Importar .xsc), como
+  py-slowdown: sus secciones y sus compases con nombre pasan a marcadores, y
+  se toman también su primer pulso y su tempo, sus bucles, su selección, su
+  velocidad y su afinación, que el `.slx` guarda desde entonces. La ruta de
+  la grabación en un `.xsc` es la del ordenador, así que la aplicación usa
+  la grabación abierta, si tiene ese nombre, o la pide.
 
 Compilación
 -----------
@@ -209,5 +237,10 @@ dice para qué sirve cada uno, y lista las herramientas con que se compila la
 aplicación. El código de Rubber Band, minimp3, dr_flac y dr_wav está en
 [`third_party/`](third_party), tal como lo publican sus autores; de Rubber
 Band solo se compilan sus propios archivos, no el código de otros que trae.
+
+Cómo guardan sus marcadores los archivos de Transcribe! lo aprendió
+py-slowdown de
+[Transcribe-xsc-file-converter](https://github.com/roryokane/Transcribe-xsc-file-converter),
+de Rory O’Kane (BlueOak-1.0.0); no se usa nada de su código.
 
 Nicolas Vaughan, nicolasvaughan@proton.me

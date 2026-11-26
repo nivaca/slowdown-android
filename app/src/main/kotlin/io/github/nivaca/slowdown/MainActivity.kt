@@ -2,11 +2,11 @@
 /*
  * La ventana de Slowdown, ordenada como la de py-slowdown: la onda arriba; la
  * reproducción y el tiempo; las perillas de la velocidad, el volumen y la
- * altura; la selección; y el panel de los marcadores y los bucles, con sus dos
- * pestañas.
+ * altura; la selección; y el panel de los marcadores, los bucles y el sonido
+ * (los canales, el filtro y el ecualizador), con sus tres pestañas.
  *
  * Lo que se hace con cada archivo (la posición, la velocidad, la altura, el
- * volumen, la selección, los marcadores y los bucles) se guarda en su .slx
+ * volumen, el ecualizador, la selección, los marcadores y los bucles) se guarda en su .slx
  * (Sidecar.kt) al salir de la ventana, al cerrar el archivo y al cambiar un
  * marcador o un bucle. El último archivo se abre otra vez al volver.
  */
@@ -42,11 +42,14 @@ import android.view.WindowManager
 import android.widget.BaseAdapter
 import android.widget.Button
 import android.widget.CheckBox
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.ListView
 import android.widget.PopupMenu
+import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import java.io.File
@@ -78,6 +81,13 @@ class MainActivity : Activity(), WaveformView.Listener {
     private lateinit var selectionLabel: TextView
     private lateinit var tabBookmarks: TextView
     private lateinit var tabLoops: TextView
+    private lateinit var tabSound: TextView
+    private lateinit var soundPanel: View
+    private lateinit var channelsBox: Spinner
+    private lateinit var filterBox: Spinner
+    private lateinit var eqOn: CheckBox
+    private lateinit var eqCurve: EqCurve
+    private val eqKnobs = mutableListOf<Knob>()
     private lateinit var headerTime: TextView
     private lateinit var list: ListView
     private lateinit var exportButton: Button
@@ -100,6 +110,9 @@ class MainActivity : Activity(), WaveformView.Listener {
     private var menu: Menu? = null
     private var skip = 5
     private var showingLoops = false
+    private var showingSound = false
+    private var tapped: Int? = null  // el tempo marcado (Marcar), hasta que se abre otro archivo
+    private var xsc: Transcribe.File? = null  // un .xsc cuya grabación se está eligiendo
     private var chosen = -1  // la fila elegida de la tabla
 
     private fun chosenFolder() = Playback.chosenFolder(this)
@@ -188,6 +201,12 @@ class MainActivity : Activity(), WaveformView.Listener {
         time.typeface = android.graphics.Typeface.MONOSPACE  // (el tipo del teléfono puede cambiar «monospace»)
         tabBookmarks = findViewById(R.id.tab_bookmarks)
         tabLoops = findViewById(R.id.tab_loops)
+        tabSound = findViewById(R.id.tab_sound)
+        soundPanel = findViewById(R.id.sound_panel)
+        channelsBox = findViewById(R.id.channels)
+        filterBox = findViewById(R.id.filter)
+        eqOn = findViewById(R.id.eq_on)
+        eqCurve = findViewById(R.id.eq_curve)
         headerTime = findViewById(R.id.header_time)
         list = findViewById(R.id.list)
         exportButton = findViewById(R.id.export)
@@ -222,9 +241,11 @@ class MainActivity : Activity(), WaveformView.Listener {
             ticks = SPEED_TICKS
             format = { "$it%" }
             show(100)
+            detents = SPEED_PRESETS  // (arrastrada, se detiene en las velocidades de siempre)
             onChange = { setSpeed(it / 100.0, fromKnob = true) }
+            onMenu = { knobMenu(it, SPEED_PRESETS) { v -> setSpeed(v / 100.0, announce = true) } }
         }
-        findViewById<View>(R.id.normal_speed).setOnClickListener { setSpeed(1.0) }
+        findViewById<View>(R.id.normal_speed).setOnClickListener { setSpeed(1.0, announce = true) }
         findViewById<View>(R.id.speeds).setOnClickListener { speedMenu(it) }
 
         // El volumen: hasta 100 % (el sonido de la grabación); con el refuerzo, por 1,5, en rojo donde lo pasa
@@ -236,6 +257,7 @@ class MainActivity : Activity(), WaveformView.Listener {
             format = { "$it%" }
             show(NORMAL_VOLUME)
             onChange = { setVolume(it) }
+            onMenu = { knobMenu(it, VOLUME_TICKS) { v -> volumeKnob.show(v); setVolume(v) } }
         }
         boost.isChecked = prefs.getBoolean("volume_boost", false)
         boost.setOnCheckedChangeListener { _, on ->
@@ -252,6 +274,7 @@ class MainActivity : Activity(), WaveformView.Listener {
             format = signed(getString(R.string.st))
             show(0)
             onChange = { setPitch(it, centKnob.value) }
+            onMenu = { knobMenu(it, symmetric(SEMITONE_CHOICES)) { v -> setPitch(v, centKnob.value) } }
         }
         centKnob.apply {
             minimum = -MAX_CENTS
@@ -261,6 +284,7 @@ class MainActivity : Activity(), WaveformView.Listener {
             format = signed(" ¢")
             show(0)
             onChange = { setPitch(semitoneKnob.value, it) }
+            onMenu = { knobMenu(it, symmetric(CENT_CHOICES)) { v -> setPitch(semitoneKnob.value, v) } }
         }
         originalPitch.setOnClickListener { setPitch(0, 0) }
 
@@ -268,9 +292,15 @@ class MainActivity : Activity(), WaveformView.Listener {
         findViewById<View>(R.id.mark_b).setOnClickListener { selectionEdge(start = false) }
         findViewById<View>(R.id.clear).setOnClickListener { setSelection(null) }
 
-        // El panel de los marcadores y los bucles
+        // El reloj: un toque muestra el tiempo que falta, y luego (con un primer pulso) el compás y el pulso
+        time.setOnClickListener { switchClock() }
+        time.tooltipText = getString(R.string.clock_hint)
+
+        // El panel de los marcadores, los bucles y el sonido
         tabBookmarks.setOnClickListener { showTab(loops = false) }
         tabLoops.setOnClickListener { showTab(loops = true) }
+        tabSound.setOnClickListener { showSoundTab() }
+        bindSound()
         findViewById<View>(R.id.table_header).setBackgroundColor(palette.ruler)
         findViewById<View>(R.id.table).setBackgroundColor(palette.base)
         list.adapter = table
@@ -297,6 +327,148 @@ class MainActivity : Activity(), WaveformView.Listener {
             view.tooltipText = "${view.contentDescription}. ${getString(R.string.no_selection)}"
         }
     }
+
+    // El panel Sonido: los canales y el filtro (siempre de acuerdo con el menú Oír) y las cinco bandas del ecualizador
+    private fun bindSound() {
+        fun spinner(box: Spinner, names: List<Int>, chosen: (Int) -> Unit) {
+            box.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, names.map { getString(it) }).apply {
+                setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            }
+            box.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) = chosen(position)
+                override fun onNothingSelected(parent: AdapterView<*>?) {}
+            }
+        }
+        spinner(channelsBox, listOf(R.string.hear_both, R.string.hear_left, R.string.hear_right, R.string.hear_mono,
+            R.string.hear_no_centre)) { i -> if (CHANNELS[i] != session.channels) setHearing(CHANNELS[i], session.filter) }
+        spinner(filterBox, listOf(R.string.hear_none, R.string.hear_bass, R.string.hear_no_bass)) { i ->
+            if (FILTERS[i] != session.filter) setHearing(session.channels, FILTERS[i])
+        }
+        val row = findViewById<LinearLayout>(R.id.eq_knobs)
+        for ((i, band) in Equalizer.BANDS.withIndex()) {
+            val name = if (band >= 1000) "${band / 1000} kHz" else "$band Hz"
+            val knob = Knob(this).apply {
+                minimum = -Equalizer.MAX_GAIN
+                maximum = Equalizer.MAX_GAIN
+                top = 0
+                home = 0
+                ticks = (minimum..maximum).filter { it % 3 == 0 }
+                format = signed("")
+                show(0)
+                tooltipText = getString(R.string.eq_band_hint, name)
+                onChange = { setBand(i, it) }
+                onMenu = { knobMenu(it, symmetric(EQ_CHOICES)) { v -> setBand(i, v) } }
+            }
+            eqKnobs += knob
+            row.addView(LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = android.view.Gravity.CENTER_HORIZONTAL
+                addView(knob)
+                addView(TextView(this@MainActivity).apply {
+                    text = name
+                    textSize = 11f
+                    gravity = android.view.Gravity.CENTER
+                })
+            }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        }
+        eqOn.tooltipText = getString(R.string.eq_on_hint)
+        eqOn.setOnCheckedChangeListener { _, on ->
+            if (on != session.eqOn) {
+                session.eqOn = on
+                applyEqualizer()
+            }
+        }
+        findViewById<View>(R.id.eq_flat).apply {
+            tooltipText = getString(R.string.eq_flat_hint)
+            setOnClickListener { setEqualizer(Equalizer.FLAT) }
+        }
+        findViewById<View>(R.id.eq_presets).setOnClickListener { presetMenu(it) }
+    }
+
+    private fun setBand(band: Int, gain: Int) {
+        setEqualizer(session.eq.toMutableList().also { it[band] = gain })
+    }
+
+    private fun setEqualizer(gains: List<Int>) {
+        session.eq = Equalizer.clamp(gains)
+        if (!Equalizer.isFlat(session.eq)) session.eqOn = true
+        applyEqualizer()
+    }
+
+    private fun applyEqualizer() {
+        Engine.setEqualizer((if (session.eqOn) session.eq else Equalizer.FLAT).toIntArray())
+        showSound()
+    }
+
+    private fun showSound() {
+        channelsBox.setSelection(CHANNELS.indexOf(session.channels).coerceAtLeast(0))
+        filterBox.setSelection(FILTERS.indexOf(session.filter).coerceAtLeast(0))
+        channelsBox.isEnabled = !loaded || Engine.channels() == 2
+        for ((i, knob) in eqKnobs.withIndex()) knob.show(session.eq[i])
+        eqOn.isChecked = session.eqOn
+        eqCurve.gains = session.eq
+        eqCurve.on = session.eqOn
+        // La pestaña, del color del resaltado mientras el ecualizador cambia el sonido
+        val active = session.eqOn && !Equalizer.isFlat(session.eq)
+        tabSound.text = getString(R.string.sound) + if (active) " · EQ" else ""
+        if (!showingSound) tabSound.setTextColor(if (active) palette.wave else palette.faint)
+    }
+
+    // Los ajustes del ecualizador: los de py-slowdown y los propios; guardar el de ahora, quitar uno propio
+    private fun ownPresets() = Equalizer.readPresets(prefs.getString("eq_presets", null))
+
+    private fun presetMenu(anchor: View) {
+        val popup = PopupMenu(this, anchor)
+        val own = ownPresets()
+        val all = Equalizer.PRESETS.map { (key, gains) -> getString(PRESET_NAMES.getValue(key)) to gains } + own
+        for ((i, preset) in all.withIndex()) {
+            popup.menu.add(0, i, i, preset.first).apply {
+                isCheckable = true
+                isChecked = preset.second == session.eq
+            }
+        }
+        popup.menu.add(1, SAVE_PRESET, all.size, R.string.eq_save_preset)
+        if (own.isNotEmpty()) popup.menu.add(1, REMOVE_PRESET, all.size + 1, R.string.eq_remove_preset)
+        popup.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                SAVE_PRESET -> ask(getString(R.string.eq_preset_name), "") { name ->
+                    if (name.isNotEmpty()) {
+                        prefs.edit().putString("eq_presets", Equalizer.writePresets(Equalizer.withPreset(own, name, session.eq))).apply()
+                    }
+                }
+                REMOVE_PRESET -> AlertDialog.Builder(this)
+                    .setTitle(R.string.eq_remove_preset)
+                    .setItems(own.map { it.first }.toTypedArray()) { _, which ->
+                        prefs.edit().putString("eq_presets", Equalizer.writePresets(own.filterIndexed { i, _ -> i != which })).apply()
+                    }
+                    .show()
+                else -> all.getOrNull(item.itemId)?.let { setEqualizer(it.second) }
+            }
+            true
+        }
+        popup.show()
+    }
+
+    // El menú de una perilla (mantener el dedo en ella): sus valores de costumbre, el de ahora marcado, y volver al
+    // de siempre
+    private fun knobMenu(knob: Knob, values: List<Int>, choose: (Int) -> Unit) {
+        val popup = PopupMenu(this, knob)
+        val shown = values.filter { it in knob.minimum..knob.maximum }
+        for ((i, v) in shown.withIndex()) {
+            popup.menu.add(0, i, i, knob.format(v)).apply {
+                isCheckable = true
+                isChecked = v == knob.value
+            }
+        }
+        popup.menu.add(1, shown.size, shown.size, getString(R.string.back_to, knob.format(knob.home)))
+        popup.setOnMenuItemClickListener { item ->
+            choose(shown.getOrNull(item.itemId) ?: knob.home)
+            true
+        }
+        popup.show()
+    }
+
+    private fun symmetric(steps: List<Int>) = (steps + steps.map { -it } + 0).distinct().sorted()
 
     private fun signed(unit: String): (Int) -> String = { value ->
         val sign = if (value > 0) "+" else if (value < 0) "−" else ""
@@ -369,6 +541,15 @@ class MainActivity : Activity(), WaveformView.Listener {
             EXPORT_SLX -> writeSlx(target)
             EXPORT_AUDIO -> exportAudioTo(target)
             IMPORT_SLX -> readSlx(target)
+            IMPORT_XSC -> readXsc(target)
+            PICK_FOR_XSC -> {
+                try {
+                    contentResolver.takePersistableUriPermission(target, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                } catch (_: SecurityException) {
+                }
+                xsc?.let { open(target, it.session) }
+                xsc = null
+            }
             TREE -> {
                 contentResolver.takePersistableUriPermission(target,
                     Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
@@ -394,7 +575,8 @@ class MainActivity : Activity(), WaveformView.Listener {
         return Source(uri.toString(), name, size)
     }
 
-    private fun open(target: Uri) {
+    // OVERRIDE: lo que se toma en lugar del .slx (de un .xsc de Transcribe!), y se guarda luego en él
+    private fun open(target: Uri, override: Session? = null) {
         if (opening) return
         save()
         Engine.pause()
@@ -413,7 +595,7 @@ class MainActivity : Activity(), WaveformView.Listener {
             } catch (e: Exception) {
                 e.message ?: e.javaClass.simpleName
             }
-            val kept = stores().firstNotNullOfOrNull { folder ->
+            val kept = override ?: stores().firstNotNullOfOrNull { folder ->
                 try { Sidecar.load(described, folder) } catch (_: Exception) { null }
             }
             handler.post {
@@ -429,7 +611,15 @@ class MainActivity : Activity(), WaveformView.Listener {
                 uri = target
                 source = described
                 prefs.edit().putString("last", target.toString()).apply()
+                tapped = null
+                summarized = false
+                remember(Recent(target.toString(), described.name, FloatArray(Recents.COLUMNS)))
                 loaded(kept ?: Session())
+                if (override != null) {
+                    save()
+                    Toast.makeText(this, getString(R.string.xsc_imported, override.bookmarks.size, override.loops.size),
+                        Toast.LENGTH_LONG).show()
+                }
             }
         }
     }
@@ -451,6 +641,7 @@ class MainActivity : Activity(), WaveformView.Listener {
         showPitch()
         showMarks()
         showCount()
+        showSound()
         showPlaying()
         updateMenu()
     }
@@ -464,6 +655,8 @@ class MainActivity : Activity(), WaveformView.Listener {
         waveform.duration = Engine.duration()
         Engine.setFormants(session.formants)
         applyHearing()
+        session.eq = Equalizer.clamp(session.eq)
+        applyEqualizer()
         session.speed = Engine.clampSpeed(session.speed)
         Engine.setSpeed(session.speed)
         session.pitch = session.pitch.coerceIn(-Engine.MAX_PITCH, Engine.MAX_PITCH)
@@ -493,11 +686,15 @@ class MainActivity : Activity(), WaveformView.Listener {
         loaded = false
         title = getString(R.string.app_name)
         hint.text = getString(R.string.open_hint)
-        hint.visibility = View.VISIBLE
         waveform.duration = 0.0
         waveform.bookmarks = emptyList()
+        waveform.loops = emptyList()
         waveform.selection = null
-        time.text = "0:00.0 / 0:00.0"
+        // La pantalla de inicio: las grabaciones de hace poco (gris la que ya no está); sin ellas, la explicación
+        waveform.recentsTitle = getString(R.string.recent_recordings)
+        waveform.recents = recents().map { it to reachable(Uri.parse(it.uri)) }
+        hint.visibility = if (waveform.recents.isEmpty()) View.VISIBLE else View.GONE
+        showClock("0:00.0 / 0:00.0")
         status.text = ""
         session = Session()
         chosen = -1
@@ -505,7 +702,43 @@ class MainActivity : Activity(), WaveformView.Listener {
         showPitch()
         showMarks()
         showSelection()
+        Engine.setEqualizer(Equalizer.FLAT.toIntArray())
+        showSound()
         updateMenu()
+    }
+
+    // --- las grabaciones de hace poco: la pantalla de inicio
+
+    private var summarized = false  // si la de ahora ya tiene su figura
+
+    private fun recents() = Recents.read(prefs.getString("recents", null))
+
+    private fun remember(recent: Recent) {
+        prefs.edit().putString("recents", Recents.write(Recents.opened(recents(), recent))).apply()
+    }
+
+    // La figura de la onda de lo abierto, cuando está leído hasta su final
+    private fun summarize() {
+        if (summarized || !loaded || !Engine.done()) return
+        summarized = true
+        val target = uri ?: return
+        val name = source?.name ?: return
+        val peaks = FloatArray(2 * Recents.COLUMNS)
+        Engine.peaks(0.0, Engine.duration() * Engine.rate() / Recents.COLUMNS, peaks)
+        remember(Recent(target.toString(), name, Recents.summary(peaks)))
+    }
+
+    private fun reachable(target: Uri): Boolean {
+        if (!hasPermission(target)) return false
+        return try {
+            contentResolver.openAssetFileDescriptor(target, "r")?.use { true } ?: false
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    override fun onRecent(recent: Recent) {
+        open(Uri.parse(recent.uri))
     }
 
     private fun closeFile() {
@@ -548,10 +781,71 @@ class MainActivity : Activity(), WaveformView.Listener {
         if (loaded) seek(Engine.position() + seconds)
     }
 
-    private fun setSpeed(speed: Double, fromKnob: Boolean = false) {
+    // ANNOUNCE: el valor, grande un momento sobre la onda (cambiado con el teclado o un menú, no con la perilla)
+    private fun setSpeed(speed: Double, fromKnob: Boolean = false, announce: Boolean = false) {
         session.speed = Engine.clampSpeed(Math.round(speed * 100) / 100.0)
         Engine.setSpeed(session.speed)
         if (!fromKnob) showSpeed()
+        if (announce && loaded) waveform.flash("${(session.speed * 100).roundToInt()}%")
+    }
+
+    private fun announcePitch() {
+        if (!loaded) return
+        val st = semitoneKnob.format(semitoneKnob.value).trim()
+        waveform.flash(if (centKnob.value != 0) "$st ${centKnob.format(centKnob.value)}" else st)
+    }
+
+    // Deshacer los cambios del sonido: velocidad 100 %, la altura de la grabación, sin formantes, los dos canales sin
+    // filtro y el ecualizador plano, de una vez; el volumen se queda
+    private fun resetSound() {
+        setSpeed(1.0)
+        setPitch(0, 0)
+        session.formants = false
+        Engine.setFormants(false)
+        session.eq = Equalizer.FLAT
+        session.eqOn = true
+        setHearing("both", "none")
+        applyEqualizer()
+        updateMenu()
+        if (loaded) waveform.flash(getString(R.string.sound_reset))
+    }
+
+    private fun selectAll() {
+        if (loaded && Engine.duration() > 0) setSelection(0.0 to Engine.duration())
+    }
+
+    private fun zoomToSelection() {
+        session.selection?.let { (a, b) -> waveform.zoomTo(a, b) }
+    }
+
+    // --- el reloj: lo pasado, lo que falta, o (con un primer pulso) el compás y el pulso
+
+    private fun clockText(position: Double, length: Double): String {
+        val mode = prefs.getString("clock", "elapsed")
+        val first = Playback.firstBeat()
+        if (mode == "bars" && first != null) {
+            val count = Playback.countIn(this)
+            val beats = prefs.getInt("countin_beats", 4).coerceIn(1, CountInRules.MAX_BEATS)
+            val where = CountInRules.barAndBeat(position, first, count.bpm.toDouble(), beats)
+            return if (where == null) getString(R.string.before_first_beat) else getString(R.string.bar_beat, where.first, where.second)
+        }
+        if (mode == "remaining") return "−${TimeFormat.long(maxOf(0.0, length - position))} / ${TimeFormat.long(length)}"
+        return "${TimeFormat.long(position)} / ${TimeFormat.long(length)}"
+    }
+
+    private fun switchClock() {
+        val modes = if (Playback.firstBeat() != null) listOf("elapsed", "remaining", "bars") else listOf("elapsed", "remaining")
+        val now = prefs.getString("clock", "elapsed")
+        val next = modes.getOrNull(modes.indexOf(now) + 1) ?: modes[0]
+        prefs.edit().putString("clock", next).apply()
+        if (loaded) showClock(clockText(Engine.position(), Engine.duration()))
+    }
+
+    // (el compás y el pulso, más largos que el tiempo, en una letra menor: la fila no se sale de la pantalla)
+    private fun showClock(text: String) {
+        if (time.text.toString() == text) return
+        time.text = text
+        time.textSize = if (text.length > 20) 14f else 18f
     }
 
     private fun showSpeed() {
@@ -569,7 +863,7 @@ class MainActivity : Activity(), WaveformView.Listener {
             }
         }
         popup.setOnMenuItemClickListener { item ->
-            setSpeed(SPEED_PRESETS[item.itemId] / 100.0)
+            setSpeed(SPEED_PRESETS[item.itemId] / 100.0, announce = true)
             true
         }
         popup.show()
@@ -641,7 +935,7 @@ class MainActivity : Activity(), WaveformView.Listener {
             if (loaded) {
                 val here = Engine.position()
                 waveform.update(here)
-                time.text = "${TimeFormat.long(here)} / ${TimeFormat.long(Engine.duration())}"
+                showClock(clockText(here, Engine.duration()))
                 val done = Engine.done()
                 if (!done || decoding) {
                     decoding = !done
@@ -650,6 +944,7 @@ class MainActivity : Activity(), WaveformView.Listener {
                     status.text = if (done) "" else "${(100 * Engine.decoded() / maxOf(1.0, total)).roundToInt()} %"
                     if (done) applyRepeat()  // (el archivo entero se repite cuando está leído hasta su final)
                 }
+                if (done && !summarized) summarize()
                 // El pulso de la cuenta previa, grande sobre la onda (antes del primer golpe, nada)
                 val counting = Engine.counting()
                 waveform.count = if (counting >= 100) counting / 100 else null
@@ -679,6 +974,7 @@ class MainActivity : Activity(), WaveformView.Listener {
         waveform.selection = selection
         applyRepeat()
         showSelection()
+        updateMenu()
         if (save) save()
     }
 
@@ -782,13 +1078,14 @@ class MainActivity : Activity(), WaveformView.Listener {
             Toast.makeText(this, getString(R.string.cannot_export, name, "?"), Toast.LENGTH_LONG).show()
             return
         }
-        val channels = if (choice.heard) listOf("both", "left", "right", "mono", "no_centre").indexOf(session.channels).coerceAtLeast(0) else 0
-        val filter = if (choice.heard) listOf("none", "bass", "no_bass").indexOf(session.filter).coerceAtLeast(0) else 0
+        val channels = if (choice.heard) CHANNELS.indexOf(session.channels).coerceAtLeast(0) else 0
+        val filter = if (choice.heard) FILTERS.indexOf(session.filter).coerceAtLeast(0) else 0
+        val eq = if (choice.heard && session.eqOn) session.eq else Equalizer.FLAT
         val volume = volumeKnob.value
         val gain = if (choice.heard) (volume / 100.0) * (volume / 100.0) * (if (boost.isChecked) boostFactor() else 1.0) else 1.0
         val (start, end) = choice.range ?: (0.0 to -1.0)
         val failed = Engine.exportStart(pfd.fd, if (choice.m4a) 1 else 0, start, end, session.speed, session.pitch,
-            session.formants, prefs.getInt("quality", Engine.QUALITY_HIGH), channels, filter, gain)
+            session.formants, prefs.getInt("quality", Engine.QUALITY_HIGH), channels, filter, eq.toIntArray(), gain)
         pfd.close()  // (el motor tiene su propia copia)
         if (failed != null) {
             Toast.makeText(this, getString(R.string.cannot_export, name, failed), Toast.LENGTH_LONG).show()
@@ -829,9 +1126,16 @@ class MainActivity : Activity(), WaveformView.Listener {
     // --- cómo se oye: los nombres son los del .slx de py-slowdown
 
     private fun applyHearing() {
-        val channels = listOf("both", "left", "right", "mono", "no_centre").indexOf(session.channels).coerceAtLeast(0)
-        val filter = listOf("none", "bass", "no_bass").indexOf(session.filter).coerceAtLeast(0)
-        Engine.setHearing(channels, filter)
+        Engine.setHearing(CHANNELS.indexOf(session.channels).coerceAtLeast(0), FILTERS.indexOf(session.filter).coerceAtLeast(0))
+    }
+
+    // Desde el menú Oír o desde el panel Sonido: los dos dicen siempre lo mismo
+    private fun setHearing(channels: String, filter: String) {
+        session.channels = channels
+        session.filter = filter
+        applyHearing()
+        updateMenu()
+        showSound()
     }
 
     // --- la cuenta previa
@@ -857,6 +1161,7 @@ class MainActivity : Activity(), WaveformView.Listener {
         val follow = prefs.getBoolean("countin_follow", true)
         val bpm = CountInRules.recordingTempo(heard, session.speed, follow)
         Playback.setCountIn(this, Playback.countIn(this).copy(bpm = bpm))
+        tapped = Math.round(heard).toInt()
         Toast.makeText(this, getString(R.string.tempo_taps, bpm, tapTempo.taps), Toast.LENGTH_SHORT).show()
         return bpm
     }
@@ -895,10 +1200,16 @@ class MainActivity : Activity(), WaveformView.Listener {
             value = count.bpm.coerceIn(CountInRules.MIN_BPM, CountInRules.MAX_BPM)
             wrapSelectorWheel = false
         }
+        // Marcar: muestra el tempo oído mientras se marca («…» tras el primer golpe), y lo guarda hasta otro archivo
         val tapButton = Button(this).apply {
-            setText(R.string.tap)
+            text = tapped?.let { getString(R.string.tap_bpm, it) } ?: getString(R.string.tap)
+            minEms = 5
             tooltipText = getString(R.string.tap_hint)
-            setOnClickListener { tap()?.let { bpm.value = it } }
+            setOnClickListener {
+                val got = tap()
+                if (got != null) bpm.value = got
+                text = tapped?.takeIf { got != null }?.let { getString(R.string.tap_bpm, it) } ?: "…"
+            }
         }
         val follow = CheckBox(this).apply {
             setText(R.string.follow_speed)
@@ -971,21 +1282,41 @@ class MainActivity : Activity(), WaveformView.Listener {
         addBookmark(seconds)
     }
 
+    // Un bucle tocado al pie de la onda: se elige, se repite y se va a su principio
+    override fun onLoop(loop: Loop) {
+        setSelection(loop.start to loop.end)
+        setRepeat(true)
+        seek(loop.start)
+        if (showingLoops) {
+            chosen = sortedLoops().indexOf(loop)
+            table.notifyDataSetChanged()
+        }
+    }
+
     // --- el panel de los marcadores y los bucles
 
-    private fun showTab(loops: Boolean) {
-        showingLoops = loops
+    private fun showTab(loops: Boolean, sound: Boolean = false) {
+        showingLoops = loops && !sound
+        showingSound = sound
         chosen = -1
-        for ((tab, on) in listOf(tabBookmarks to !loops, tabLoops to loops)) {
+        for ((tab, on) in listOf(tabBookmarks to (!loops && !sound), tabLoops to showingLoops, tabSound to sound)) {
             tab.setTextColor(if (on) palette.text else palette.faint)
             tab.setBackgroundColor(if (on) palette.base else Color.TRANSPARENT)
             tab.paint.isFakeBoldText = on
             tab.invalidate()
         }
+        // El sonido, en lugar de la tabla y sus botones
+        findViewById<View>(R.id.table).visibility = if (sound) View.GONE else View.VISIBLE
+        findViewById<View>(R.id.panel_buttons).visibility = if (sound) View.GONE else View.VISIBLE
+        soundPanel.visibility = if (sound) View.VISIBLE else View.GONE
+        findViewById<TextView>(R.id.panel_title).setText(if (sound) R.string.sound else R.string.bookmarks_and_loops)
         headerTime.text = getString(R.string.time)
         exportButton.isEnabled = !loops
         table.notifyDataSetChanged()
+        if (::eqCurve.isInitialized) showSound()
     }
+
+    private fun showSoundTab() = showTab(loops = false, sound = true)
 
     private fun choose(position: Int) {
         chosen = position
@@ -1074,7 +1405,7 @@ class MainActivity : Activity(), WaveformView.Listener {
         if (!loaded) return
         val mark = Bookmark(Math.round(seconds * 1000) / 1000.0)
         session.bookmarks.add(mark)
-        if (showingLoops) showTab(loops = false)
+        if (showingLoops || showingSound) showTab(loops = false)
         changed()
         chosen = session.bookmarks.indexOf(mark)
         table.notifyDataSetChanged()
@@ -1146,6 +1477,7 @@ class MainActivity : Activity(), WaveformView.Listener {
     private fun showMarks() {
         session.bookmarks.sortBy { it.time }
         waveform.bookmarks = session.bookmarks.toList()
+        waveform.loops = session.loops.toList()
         if (chosen >= table.count) chosen = -1
         table.notifyDataSetChanged()
     }
@@ -1193,7 +1525,10 @@ class MainActivity : Activity(), WaveformView.Listener {
             Engine.QUALITY_R2 -> R.id.quality_r2
             else -> R.id.quality_high
         }).isChecked = true
-        for (id in listOf(R.id.save, R.id.close, R.id.export_slx, R.id.import_slx, R.id.export_audio)) menu.findItem(id).isEnabled = loaded
+        for (id in listOf(R.id.save, R.id.close, R.id.export_slx, R.id.import_slx, R.id.export_audio, R.id.select_all)) {
+            menu.findItem(id).isEnabled = loaded
+        }
+        menu.findItem(R.id.zoom_selection).isEnabled = loaded && session.selection != null
         // Cómo se oye: los canales (no con un archivo mono) y el filtro
         menu.findItem(HEAR_CHANNELS.entries.firstOrNull { it.value == session.channels }?.key ?: R.id.hear_both).isChecked = true
         menu.findItem(HEAR_FILTERS.entries.firstOrNull { it.value == session.filter }?.key ?: R.id.hear_none).isChecked = true
@@ -1243,16 +1578,13 @@ class MainActivity : Activity(), WaveformView.Listener {
             }
             R.id.save -> save(announce = true)
             R.id.close -> closeFile()
-            in HEAR_CHANNELS.keys -> {
-                session.channels = HEAR_CHANNELS.getValue(item.itemId)
-                applyHearing()
-                updateMenu()
-            }
-            in HEAR_FILTERS.keys -> {
-                session.filter = HEAR_FILTERS.getValue(item.itemId)
-                applyHearing()
-                updateMenu()
-            }
+            in HEAR_CHANNELS.keys -> setHearing(HEAR_CHANNELS.getValue(item.itemId), session.filter)
+            in HEAR_FILTERS.keys -> setHearing(session.channels, HEAR_FILTERS.getValue(item.itemId))
+            R.id.hear_equalizer -> showSoundTab()
+            R.id.reset_sound -> resetSound()
+            R.id.select_all -> selectAll()
+            R.id.zoom_selection -> zoomToSelection()
+            R.id.import_xsc -> importXsc()
             R.id.licenses -> showLicenses()
             R.id.export_audio -> exportAudioDialog()
             R.id.export_slx -> exportSlx()
@@ -1327,6 +1659,53 @@ class MainActivity : Activity(), WaveformView.Listener {
             .setPositiveButton(R.string.ok) { _, _ -> apply() }
             .setNegativeButton(R.string.cancel, null)
             .show()
+    }
+
+    // --- los archivos de Transcribe! (.xsc): su grabación, con sus marcadores, bucles, velocidad y afinación
+
+    private fun importXsc() {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "*/*"
+        }
+        @Suppress("DEPRECATION")
+        startActivityForResult(intent, IMPORT_XSC)
+    }
+
+    private fun readXsc(target: Uri) {
+        val name = describe(target).name
+        val text = try {
+            contentResolver.openInputStream(target)?.use { stream ->
+                val bytes = stream.readBytes()
+                // (en UTF-8, o si no lo es, en Latin-1, como lo lee py-slowdown)
+                val decoder = Charsets.UTF_8.newDecoder()
+                try { decoder.decode(java.nio.ByteBuffer.wrap(bytes)).toString() } catch (_: java.nio.charset.CharacterCodingException) {
+                    String(bytes, Charsets.ISO_8859_1)
+                }
+            }
+        } catch (_: Exception) {
+            null
+        }
+        val file = text?.let { Transcribe.read(it, getString(R.string.first_beat_label)) }
+        if (file == null) {
+            Toast.makeText(this, getString(R.string.not_xsc, name), Toast.LENGTH_LONG).show()
+            return
+        }
+        // La grabación: la abierta, si se llama como dice el .xsc; si no, la que se elija
+        val current = uri
+        if (current != null && loaded && file.recording.isNotEmpty() && source?.name == file.recording) {
+            open(current, file.session)
+            return
+        }
+        xsc = file
+        Toast.makeText(this, getString(R.string.xsc_choose_recording, file.recording.ifEmpty { "?" }), Toast.LENGTH_LONG).show()
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "*/*"
+            putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("audio/*", "video/*", "application/ogg"))
+        }
+        @Suppress("DEPRECATION")
+        startActivityForResult(intent, PICK_FOR_XSC)
     }
 
     private fun slxFolderDialog() {
@@ -1435,11 +1814,19 @@ class MainActivity : Activity(), WaveformView.Listener {
             KeyEvent.KEYCODE_PAGE_DOWN -> nextBookmark(1)
             KeyEvent.KEYCODE_MOVE_HOME -> seek(0.0)
             KeyEvent.KEYCODE_MOVE_END -> seek(Engine.duration())
-            KeyEvent.KEYCODE_DPAD_UP -> if (ctrl) setPitch(semitoneKnob.value + 1, centKnob.value) else setSpeed(session.speed + SPEED_STEP)
-            KeyEvent.KEYCODE_DPAD_DOWN -> if (ctrl) setPitch(semitoneKnob.value - 1, centKnob.value) else setSpeed(session.speed - SPEED_STEP)
-            KeyEvent.KEYCODE_PLUS, KeyEvent.KEYCODE_EQUALS -> setSpeed(session.speed + SPEED_STEP)
-            KeyEvent.KEYCODE_MINUS -> setSpeed(session.speed - SPEED_STEP)
-            KeyEvent.KEYCODE_N -> if (shift) setPitch(0, 0) else setSpeed(1.0)
+            KeyEvent.KEYCODE_DPAD_UP -> if (ctrl) { setPitch(semitoneKnob.value + 1, centKnob.value); announcePitch() }
+                else setSpeed(session.speed + SPEED_STEP, announce = true)
+            KeyEvent.KEYCODE_DPAD_DOWN -> if (ctrl) { setPitch(semitoneKnob.value - 1, centKnob.value); announcePitch() }
+                else setSpeed(session.speed - SPEED_STEP, announce = true)
+            KeyEvent.KEYCODE_PLUS, KeyEvent.KEYCODE_EQUALS -> setSpeed(session.speed + SPEED_STEP, announce = true)
+            KeyEvent.KEYCODE_MINUS -> setSpeed(session.speed - SPEED_STEP, announce = true)
+            KeyEvent.KEYCODE_N -> when {
+                ctrl && shift -> resetSound()
+                shift -> { setPitch(0, 0); announcePitch() }
+                else -> setSpeed(1.0, announce = true)
+            }
+            KeyEvent.KEYCODE_A -> if (ctrl) selectAll() else return super.onKeyDown(keyCode, event)
+            KeyEvent.KEYCODE_Z -> zoomToSelection()
             KeyEvent.KEYCODE_S -> { Engine.stop(); showPlaying(); PlaybackService.update(this) }
             KeyEvent.KEYCODE_B -> addBookmark(Engine.position())
             KeyEvent.KEYCODE_I -> selectionEdge(start = true)
@@ -1468,6 +1855,18 @@ class MainActivity : Activity(), WaveformView.Listener {
         private const val IMPORT_SLX = 4
         private const val TREE = 5
         private const val EXPORT_AUDIO = 6
+        private const val IMPORT_XSC = 7
+        private const val PICK_FOR_XSC = 8
+        private const val SAVE_PRESET = 1000
+        private const val REMOVE_PRESET = 1001
+        val CHANNELS = listOf("both", "left", "right", "mono", "no_centre")  // los nombres del .slx de py-slowdown
+        val FILTERS = listOf("none", "bass", "no_bass")
+        val SEMITONE_CHOICES = listOf(1, 2, 3, 5, 7, 12)  // los intervalos de costumbre, en el menú de la perilla
+        val CENT_CHOICES = listOf(5, 10, 25, 50)
+        val EQ_CHOICES = listOf(3, 6, 9, 12)
+        private val PRESET_NAMES = mapOf("eq_flat" to R.string.eq_flat, "eq_bass_up" to R.string.eq_bass_up,
+            "eq_bass_line" to R.string.eq_bass_line, "eq_voice" to R.string.eq_voice, "eq_bright" to R.string.eq_bright,
+            "eq_warm" to R.string.eq_warm, "eq_hiss" to R.string.eq_hiss)
         const val SPEED_STEP = 0.05
         const val NORMAL_VOLUME = 100  // por ciento: el sonido de la grabación, lo más que da la perilla
         val BOOSTS = listOf(1.2, 1.5, 1.8, 2.0, 2.5, 3.0)  // por cuánto puede multiplicar el sonido el refuerzo

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // La exportación: la grabación, o una parte, como suena (a la velocidad y la altura elegidas, y como se oye,
-// si se pide), en un archivo WAV (PCM de 16 bits) o M4A (AAC, con el codificador de Android).
+// con el ecualizador, si se pide), en un archivo WAV (PCM de 16 bits) o M4A (AAC, con el codificador de Android).
 //
 // Se hace fuera de la reproducción, con un Renderer propio sobre el mismo Audio (que debe estar leído hasta su
 // final), en un hilo: Export dice cuánto lleva, se puede cancelar, y dice si hubo un error.
@@ -12,6 +12,7 @@
 #include <thread>
 
 #include "audio.h"
+#include "equalizer.h"
 
 namespace slowdown {
 
@@ -24,6 +25,7 @@ struct ExportSettings {
     bool formants = false;
     int quality = 0;
     int channels = 0, filter = 0;  // cómo se oye (hearing.h)
+    Gains eq{};                    // el ecualizador (equalizer.h); plano, nada
     double gain = 1.0;
 };
 

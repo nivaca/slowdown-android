@@ -30,6 +30,7 @@
 #include <vector>
 
 #include "audio.h"
+#include "equalizer.h"
 #include "hearing.h"
 
 namespace RubberBand { class RubberBandStretcher; }
@@ -153,6 +154,7 @@ public:
     void set_quality(int quality);
     void set_volume(double volume) { volume_.store(float(volume)); }
     void set_hearing(int channels, int filter);  // cómo se oye (hearing.h)
+    void set_equalizer(const Gains& gains);      // las cinco bandas, en dB (equalizer.h); plano, nada
     double speed() const { return speed_; }
     double pitch() const { return pitch_; }
 
@@ -177,6 +179,8 @@ private:
     int quality_ = QUALITY_HIGH;
     int hearing_channels_ = BOTH, hearing_filter_ = NONE;
     std::unique_ptr<Hearing> hearing_;
+    Gains eq_gains_{};       // las del ecualizador, que el hilo productor toma con el pedido EQUALIZER
+    std::unique_ptr<Equalizer> equalizer_;
 
     mutable std::mutex lock_;
     std::condition_variable wake_;

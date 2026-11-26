@@ -262,13 +262,19 @@ void Export::run() {
     renderer.seek(double(first), false);
     Hearing hearing(rate);
     hearing.set(settings_.channels, settings_.filter);
-    // (un filtro retrasa el sonido medio núcleo: esos cuadros del principio se tiran, y al final se completan)
-    int64_t delay = settings_.filter == NONE ? 0 : (int64_t(KERNEL_SECONDS * rate) | 1) / 2;
+    Equalizer equalizer(rate);
+    equalizer.set(settings_.eq);
+    const bool equalized = !eq_flat(equalizer.gains());
+    // (un filtro retrasa el sonido medio núcleo, y el ecualizador el suyo: esos cuadros del principio se tiran,
+    // y al final se completan)
+    int64_t delay = (settings_.filter == NONE ? 0 : (int64_t(KERNEL_SECONDS * rate) | 1) / 2) +
+                    eq_delay(equalizer.gains(), rate);
     int64_t skip = delay;
     std::vector<int16_t> pcm;
     bool seam = false;
     auto emit = [&](std::vector<float>& frames) -> bool {
         hearing.process(frames, ch);
+        if (equalized) equalizer.process(frames, ch);
         size_t n = frames.size() / size_t(ch);
         size_t from = size_t(std::min<int64_t>(skip, int64_t(n)));
         skip -= int64_t(from);

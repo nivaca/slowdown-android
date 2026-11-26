@@ -7,6 +7,57 @@ All notable changes to Slowdown, the Android version of
 
 ## Unreleased
 
+What py-slowdown gained in its versions 1.4 to 1.6, where a phone can have it.
+
+- **A five-band equalizer**, that of py-slowdown, in a new tab Sound of the
+  panel (also menu > Hear > Equalizer): 60 Hz, 250 Hz, 1 kHz, 4 kHz and
+  12 kHz, each from −12 to +12 dB, on knobs, with a curve of what it does
+  from 20 Hz to 20 kHz, On (to compare), Flat, and Presets: those of
+  py-slowdown for music (Bass up, Hear the bass line, Voice and solos
+  forward, Bright, Warm, Cut the hiss) and one's own, saved by name and
+  removed again. The same linear-phase filter as on the desktop, applied by
+  the engine block after block, with a fade when it changes. Each file keeps
+  it in its `.slx`, in the same `<equalizer>` as py-slowdown; an export as
+  it is heard applies it, without its 40 ms of delay. The tab Sound has the
+  channels and the filter of menu > Hear too, the two always agreeing; it
+  says "· EQ" while the equalizer changes the sound.
+- **Reset the sound** (menu, or Ctrl+Shift+N): speed 100%, the recording's
+  pitch, the formants off, both channels without a filter and the
+  equalizer flat, at once; the volume stays.
+- **The loops on the waveform**: each saved loop is a band of its own
+  colour at the foot of the waveform, with its name; a tap on it selects
+  it, repeats it and goes to its start.
+- **The whole file above a closer view**: zoomed in, a strip above the
+  waveform shows the whole file, the part in view shaded and the position
+  in red; a tap or a drag there shows that part, without moving the
+  position. A view moved by hand no longer jumps back to the position while
+  it is paused.
+- **Zoom to the selection** (menu, or Z) and **Select the whole file**
+  (menu, or Ctrl+A).
+- **A start screen**: without a file, the waveform lists the recordings
+  opened last, each with a small picture of its waveform; a tap opens one;
+  one that is no longer there is greyed.
+- **A clock that switches**: a tap on the time shows the time left, and,
+  with a first beat, the bar and the beat (at the count-in's tempo, as many
+  beats in a bar as it has clicks); remembered.
+- **A menu on every knob**: holding a finger still on a knob offers its
+  usual values (the chosen speeds; the intervals of 1, 2, 3, 5, 7 and 12
+  semitones; steps of cents, of volume and of decibels), the one now
+  ticked, and Back to its usual one.
+- **The speed knob stops at the chosen speeds**: dragged, it stays at one
+  of the list (50%, 75%, 100%…) while it passes within a few degrees of it.
+- **The value just changed, large on the waveform**: a speed changed from
+  the keyboard, 1× or the menu of speeds, or a pitch changed from the
+  keyboard, is shown in the middle of the waveform for a moment, then fades.
+- **Files of Transcribe!** (`.xsc`): menu > Import .xsc takes their
+  sections and named measures as bookmarks, their first beat and the tempo
+  of their beats, their loops, their selection, their speed and their
+  tuning, kept from then on in the `.slx`. The `.xsc` names its recording
+  by a path of the computer, so the app takes the recording open, if it has
+  that name, or asks for it.
+- **Tap** (in the count-in's settings) shows the tempo tapped ("120 BPM"),
+  until another file is opened.
+
 - `tools/zenodo.py`: the description of the deposit is now the whole
   README of the tag, in HTML. The draft also gets the contributor (the
   project leader), the languages, the copyright, the repository on GitHub,
