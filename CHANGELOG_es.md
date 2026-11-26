@@ -5,6 +5,13 @@ Los cambios de Slowdown, la versión para Android de
 [GitHub](https://github.com/nivaca/slowdown-android) y
 [Codeberg](https://codeberg.org/nivaca/slowdown-android).
 
+## Sin publicar
+
+- Las opciones del menú que aún no se pueden usar (Cargar un .slx…, Guardar,
+  las exportaciones, Cerrar el archivo, mientras no hay una grabación abierta)
+  se ven ahora en gris. Algunos teléfonos, los Motorola entre ellos, las
+  dibujaban como las demás, y Cargar un .slx… parecía no hacer nada.
+
 ## 1.3 — 2026-11-26
 
 Lo que py-slowdown ganó en sus versiones 1.4 a 1.6, donde cabe en un teléfono.

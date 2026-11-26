@@ -29,6 +29,9 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.OpenableColumns
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
 import android.text.InputType
 import android.view.Choreographer
 import android.view.KeyEvent
@@ -1526,13 +1529,13 @@ class MainActivity : Activity(), WaveformView.Listener {
             else -> R.id.quality_high
         }).isChecked = true
         for (id in listOf(R.id.save, R.id.close, R.id.export_slx, R.id.import_slx, R.id.export_audio, R.id.select_all)) {
-            menu.findItem(id).isEnabled = loaded
+            enable(menu.findItem(id), loaded)
         }
-        menu.findItem(R.id.zoom_selection).isEnabled = loaded && session.selection != null
+        enable(menu.findItem(R.id.zoom_selection), loaded && session.selection != null)
         // Cómo se oye: los canales (no con un archivo mono) y el filtro
         menu.findItem(HEAR_CHANNELS.entries.firstOrNull { it.value == session.channels }?.key ?: R.id.hear_both).isChecked = true
         menu.findItem(HEAR_FILTERS.entries.firstOrNull { it.value == session.filter }?.key ?: R.id.hear_none).isChecked = true
-        menu.setGroupEnabled(R.id.hear_channels, !loaded || Engine.channels() == 2)
+        for (id in HEAR_CHANNELS.keys) enable(menu.findItem(id), !loaded || Engine.channels() == 2)
         // El refuerzo: ×1,2 … ×3, el de ahora marcado
         val boosts = menu.findItem(R.id.boost_factor).subMenu ?: return
         if (boosts.size() == 0) {
@@ -1542,6 +1545,23 @@ class MainActivity : Activity(), WaveformView.Listener {
         val factor = boostFactor()
         // (solo el de ahora: en un grupo exclusivo, setChecked(false) también marca la opción)
         boosts.findItem(BOOST_ITEM + BOOSTS.indexOf(factor))?.isChecked = true
+    }
+
+    // Una opción que no se puede usar ahora: apagada, y gris a la vista (el tema del sistema de algunos teléfonos,
+    // como los Motorola, la dibuja igual que las demás, y parecía no hacer nada)
+    private fun enable(item: MenuItem, on: Boolean) {
+        item.isEnabled = on
+        val title = item.title?.toString() ?: return
+        item.title = if (on) title else SpannableString(title).apply {
+            setSpan(ForegroundColorSpan(disabledColor), 0, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
+    }
+
+    private val disabledColor by lazy {
+        val attrs = obtainStyledAttributes(intArrayOf(android.R.attr.textColorPrimary))
+        val color = attrs.getColor(0, Color.GRAY)
+        attrs.recycle()
+        Color.argb(97, Color.red(color), Color.green(color), Color.blue(color))  // (el 38 % de los textos apagados)
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {

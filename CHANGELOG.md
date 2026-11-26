@@ -5,6 +5,13 @@ All notable changes to Slowdown, the Android version of
 [GitHub](https://github.com/nivaca/slowdown-android) and
 [Codeberg](https://codeberg.org/nivaca/slowdown-android).
 
+## Unreleased
+
+- The menu items that cannot be used yet (Load a .slx…, Save, the exports,
+  Close the file, while no recording is open) are now shown in grey. Some
+  phones, Motorola's among them, drew them like the others, so that Load a
+  .slx… seemed to do nothing.
+
 ## 1.3 — 2026-11-26
 
 What py-slowdown gained in its versions 1.4 to 1.6, where a phone can have it.
