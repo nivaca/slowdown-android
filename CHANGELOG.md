@@ -5,7 +5,7 @@ All notable changes to Slowdown, the Android version of
 [GitHub](https://github.com/nivaca/slowdown-android) and
 [Codeberg](https://codeberg.org/nivaca/slowdown-android).
 
-## Unreleased
+## 1.4 — 2026-11-26
 
 A pause goes back to where playing started, with Continue from the pause
 and Play from the last pause, as in py-slowdown; a .slx can be loaded with

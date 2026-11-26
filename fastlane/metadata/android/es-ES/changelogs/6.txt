@@ -1,0 +1,1 @@
+Una pausa vuelve adonde empezó a tocar, con Seguir desde la pausa y Tocar desde la última pausa, como en py-slowdown; un .slx se puede cargar sin una grabación abierta, y las opciones del menú que no se pueden usar se ven en gris en todos los teléfonos.

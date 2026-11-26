@@ -1,0 +1,1 @@
+A pause goes back to where playing started, with Continue from the pause and Play from the last pause, as in py-slowdown; a .slx can be loaded with no recording open; and the menu items that cannot be used are grey on every phone.
