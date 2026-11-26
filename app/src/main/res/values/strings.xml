@@ -161,11 +161,7 @@ The stretching is done by the Rubber Band Library, © Particular Programs Ltd. (
     <string name="bar_beat">Bar %1$d · beat %2$d</string>
     <string name="before_first_beat">Bar — · before the first beat</string>
     <string name="recent_recordings">Recent recordings</string>
-    <string name="import_xsc">Import .xsc…</string>
-    <string name="not_xsc">%1$s is not a file of Transcribe!</string>
     <string name="choose_recording">Its recording is %1$s: choose it.</string>
     <string name="slx_loaded">Loaded %1$s</string>
-    <string name="xsc_imported">Imported from Transcribe!: %1$d bookmarks, %2$d loops</string>
-    <string name="first_beat_label">First beat</string>
     <string name="tap_bpm">%1$d BPM</string>
 </resources>

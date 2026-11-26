@@ -5,6 +5,17 @@ Los cambios de Slowdown, la versión para Android de
 [GitHub](https://github.com/nivaca/slowdown-android) y
 [Codeberg](https://codeberg.org/nivaca/slowdown-android).
 
+## Sin publicar
+
+Importar .xsc ya no está en el menú, y con él se va la importación de los
+archivos de Transcribe!.
+
+- **Importar .xsc** ya no está en el menú. Era la única manera de abrir un
+  archivo de Transcribe! (`.xsc`) en el teléfono, así que Slowdown ya no los
+  lee; un `.slx` escrito a partir de uno conserva todo lo que tomó.
+  py-slowdown también quita la opción de su menú, pero sigue abriendo esos
+  archivos con Archivo > Abrir.
+
 ## 1.4 — 2026-11-26
 
 Una pausa vuelve adonde empezó a tocar, con Seguir desde la pausa y Tocar

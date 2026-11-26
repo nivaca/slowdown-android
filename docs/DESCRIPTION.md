@@ -6,7 +6,7 @@ Android phone. It is for practising music and learning it by ear. Nicolas
 Vaughan made it in November 2026, as the Android version of py-slowdown,
 his program for the desktop (Python and Qt): the engine of py-slowdown was
 translated into C++, and the window was written again for a phone;
-the current one is 1.4. Here I explain how it was made, in seven stages.
+the current one is 1.4. Here I explain how it was made, in eight stages.
 
 Slowdown is free software, under the GNU General Public License, version 3
 or later. It carries the Rubber Band Library 4.0.0, by Particular Programs
@@ -16,10 +16,7 @@ dr_wav, by David Reid (Unlicense or MIT No Attribution); the Kotlin
 standard library (Apache License 2.0); LLVM's libc++, linked into the
 engine (Apache License 2.0 with the LLVM exceptions); and the shapes of
 Google's Material Icons (Apache License 2.0). `docs/THIRD-PARTY.md` lists
-them, with the tools that build the app. How the files of Transcribe! keep their
-markers was learnt, for py-slowdown, from Rory O'Kane's
-Transcribe-xsc-file-converter (Blue Oak Model License 1.0.0), without
-taking any of its code.
+them, with the tools that build the app.
 
 Nicolas Vaughan is Associate Professor of Literature at the School of Arts
 and Humanities of the Universidad de los Andes, Bogotá, Colombia.
@@ -304,10 +301,23 @@ and checks that every file the index names exists. And from this version
 on, each release is published on Zenodo by the release script itself,
 instead of being left there as a draft.
 
+8. Without the files of Transcribe!
+-----------------------------------
+
+The import of the files of Transcribe! (`.xsc`), which had come in stage 6,
+went out again. I decided to take Import .xsc off the menu of both
+programs. On the desktop the files of Transcribe! are still opened as
+before, with File > Open, the command line or a drop on the window, so
+only the menu item went. On the phone that item was the only way in,
+since the picker of Open shows only audio and video, so the import went
+with it: rather than leave a reader that nothing calls, I took out `Transcribe.kt`, its four tests and its texts. Loading a `.slx`
+with no recording open, which had been modelled on that import, keeps
+working as stage 7 left it.
+
 Testing
 -------
 
-There are 64 tests. Seven are programs in C++ that test the
+There are 60 tests. Seven are programs in C++ that test the
 engine compiled for the computer, run by CTest: the audio in memory (its
 chunks, reading across them, the peaks of the waveform), the renderer (the
 copy bit for bit at 1×; the length and the pitch of the stretched sound at
@@ -322,7 +332,7 @@ the same as the whole filter at once), and the export (a valid WAV, the
 same samples at 1×, twice as long at 0.5×, a selection, and the filter's
 delay made up, also with the equalizer), and the equalizer (its curve,
 each band's gain, flat untouched, the blocks a convolution, a change
-without a click). Thirty-seven tests in Kotlin, run on the JVM, check the
+without a click). Thirty-three tests in Kotlin, run on the JVM, check the
 `.slx` (that one written by py-slowdown is read, that what is written is
 read back, the numbers written as Python writes them, the names of the
 files and how the right one is found, the whole file repeated), the
@@ -330,7 +340,7 @@ bookmarks exported as text, the format of the times and of the boost
 factors, that the licences in the app, in `LICENSES/` and in the documents
 agree, how their texts are fitted to the screen, the `.slx` in any folder,
 the rules of the count-in and its bars and beats, the equalizer's curve,
-its presets and its place in the `.slx`, the files of Transcribe!, the
+its presets and its place in the `.slx`, the
 recent recordings, and where a pause goes back to. Twenty tests in Python
 check the tools of the release (`tools/zenodo.py`, its publishing too). `tools/test.sh` runs the three kinds at once, each
 test in a process of its own.
@@ -356,7 +366,7 @@ picker. The things of stage 7 were tried on the Moto g55 again: the grey
 items of the menu, a `.slx` loaded with nothing open, and the pause.
 
 Without the libraries in `third_party/`, the texts of `LICENSES/` and the
-documentation, Slowdown has 107 files of its own (code, layouts, texts,
-build files, the store texts, tests and tools) with about 12,350 lines:
-2,790 of C++ in the engine, 4,180 of Kotlin in the window, 1,830 in the
+documentation, Slowdown has 105 files of its own (code, layouts, texts,
+build files, the store texts, tests and tools) with about 12,030 lines:
+2,790 of C++ in the engine, 3,960 of Kotlin in the window, 1,740 in the
 tests and 1,670 in the tools.

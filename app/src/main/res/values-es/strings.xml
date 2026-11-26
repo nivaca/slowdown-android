@@ -160,11 +160,7 @@ El estiramiento lo hace la biblioteca Rubber Band, © Particular Programs Ltd. (
     <string name="bar_beat">Compás %1$d · pulso %2$d</string>
     <string name="before_first_beat">Compás — · antes del primer pulso</string>
     <string name="recent_recordings">Grabaciones recientes</string>
-    <string name="import_xsc">Importar .xsc…</string>
-    <string name="not_xsc">%1$s no es un archivo de Transcribe!</string>
     <string name="choose_recording">Su grabación es %1$s: elíjala.</string>
     <string name="slx_loaded">Cargado: %1$s</string>
-    <string name="xsc_imported">Importado de Transcribe!: %1$d marcadores, %2$d bucles</string>
-    <string name="first_beat_label">Primer pulso</string>
     <string name="tap_bpm">%1$d BPM</string>
 </resources>

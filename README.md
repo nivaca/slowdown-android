@@ -124,12 +124,6 @@ What it does
   audio): at the speed and pitch chosen, and as it is heard, if asked (the
   channels, the filter, the equalizer and the volume); in WAV or M4A (AAC).
   (py-slowdown also writes FLAC, MP3 and Opus.)
-- Imports the files of Transcribe! (menu > Import .xsc), as py-slowdown
-  does: their sections and named measures become bookmarks, and their
-  first beat and tempo, their loops, their selection, their speed and their
-  tuning are taken too, and kept from then on in the `.slx`. The path of the
-  recording in a `.xsc` is that of the computer, so the app uses the
-  recording open, if it has that name, or asks for it.
 
 Building
 --------
@@ -237,10 +231,5 @@ says what each one is for, and lists the tools that build the app. The
 sources of Rubber Band, minimp3, dr_flac and dr_wav are in
 [`third_party/`](third_party), as their authors publish them; of Rubber Band
 only its own files are compiled, not the code by others that it carries.
-
-How the files of Transcribe! keep their markers was learnt, by py-slowdown,
-from Rory O’Kane's
-[Transcribe-xsc-file-converter](https://github.com/roryokane/Transcribe-xsc-file-converter)
-(BlueOak-1.0.0); no code of it is used.
 
 Nicolas Vaughan, nicolasvaughan@proton.me

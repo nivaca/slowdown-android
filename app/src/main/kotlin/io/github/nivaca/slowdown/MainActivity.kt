@@ -116,7 +116,7 @@ class MainActivity : Activity(), WaveformView.Listener {
     private var showingLoops = false
     private var showingSound = false
     private var tapped: Int? = null  // el tempo marcado (Marcar), hasta que se abre otro archivo
-    // Lo leído de un .slx o de un .xsc cuya grabación se está eligiendo, y lo que se dirá al abrirla
+    // Lo leído de un .slx cuya grabación se está eligiendo, y lo que se dirá al abrirla
     private var waiting: Pair<Session, String>? = null
     private var chosen = -1  // la fila elegida de la tabla
 
@@ -547,7 +547,6 @@ class MainActivity : Activity(), WaveformView.Listener {
             EXPORT_SLX -> writeSlx(target)
             EXPORT_AUDIO -> exportAudioTo(target)
             IMPORT_SLX -> readSlx(target)
-            IMPORT_XSC -> readXsc(target)
             PICK_FOR_SESSION -> {
                 try {
                     contentResolver.takePersistableUriPermission(target, Intent.FLAG_GRANT_READ_URI_PERMISSION)
@@ -581,7 +580,7 @@ class MainActivity : Activity(), WaveformView.Listener {
         return Source(uri.toString(), name, size)
     }
 
-    // OVERRIDE: lo que se toma en lugar del .slx (de un .xsc de Transcribe! o de otro .slx), y se guarda luego en
+    // OVERRIDE: lo que se toma en lugar del .slx (de otro .slx), y se guarda luego en
     // él; DONE, lo que se dice entonces
     private fun open(target: Uri, override: Session? = null, done: String? = null) {
         if (opening) return
@@ -1645,7 +1644,6 @@ class MainActivity : Activity(), WaveformView.Listener {
             R.id.reset_sound -> resetSound()
             R.id.select_all -> selectAll()
             R.id.zoom_selection -> zoomToSelection()
-            R.id.import_xsc -> importXsc()
             R.id.licenses -> showLicenses()
             R.id.export_audio -> exportAudioDialog()
             R.id.export_slx -> exportSlx()
@@ -1708,7 +1706,7 @@ class MainActivity : Activity(), WaveformView.Listener {
             return
         }
         val of = Sidecar.owner(text)?.second.orEmpty()
-        // Sin una grabación abierta, se elige la suya (como con un .xsc)
+        // Sin una grabación abierta, se elige la suya
         val source = source
         if (!loaded || source == null) {
             chooseRecording(kept, of, getString(R.string.slx_loaded, describe(target).name))
@@ -1727,48 +1725,7 @@ class MainActivity : Activity(), WaveformView.Listener {
             .show()
     }
 
-    // --- los archivos de Transcribe! (.xsc): su grabación, con sus marcadores, bucles, velocidad y afinación
-
-    private fun importXsc() {
-        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-            addCategory(Intent.CATEGORY_OPENABLE)
-            type = "*/*"
-        }
-        @Suppress("DEPRECATION")
-        startActivityForResult(intent, IMPORT_XSC)
-    }
-
-    private fun readXsc(target: Uri) {
-        val name = describe(target).name
-        val text = try {
-            contentResolver.openInputStream(target)?.use { stream ->
-                val bytes = stream.readBytes()
-                // (en UTF-8, o si no lo es, en Latin-1, como lo lee py-slowdown)
-                val decoder = Charsets.UTF_8.newDecoder()
-                try { decoder.decode(java.nio.ByteBuffer.wrap(bytes)).toString() } catch (_: java.nio.charset.CharacterCodingException) {
-                    String(bytes, Charsets.ISO_8859_1)
-                }
-            }
-        } catch (_: Exception) {
-            null
-        }
-        val file = text?.let { Transcribe.read(it, getString(R.string.first_beat_label)) }
-        if (file == null) {
-            Toast.makeText(this, getString(R.string.not_xsc, name), Toast.LENGTH_LONG).show()
-            return
-        }
-        // La grabación: la abierta, si se llama como dice el .xsc; si no, la que se elija
-        val current = uri
-        if (current != null && loaded && file.recording.isNotEmpty() && source?.name == file.recording) {
-            open(current, file.session, imported(file.session))
-            return
-        }
-        chooseRecording(file.session, file.recording, imported(file.session))
-    }
-
-    private fun imported(session: Session) = getString(R.string.xsc_imported, session.bookmarks.size, session.loops.size)
-
-    // La grabación de lo leído (un .slx o un .xsc), llamada RECORDING: se elige, y se abre con SESSION
+    // La grabación de un .slx leído, llamada RECORDING: se elige, y se abre con SESSION
     private fun chooseRecording(session: Session, recording: String, done: String) {
         waiting = session to done
         Toast.makeText(this, getString(R.string.choose_recording, recording.ifEmpty { "?" }), Toast.LENGTH_LONG).show()
@@ -1929,7 +1886,6 @@ class MainActivity : Activity(), WaveformView.Listener {
         private const val IMPORT_SLX = 4
         private const val TREE = 5
         private const val EXPORT_AUDIO = 6
-        private const val IMPORT_XSC = 7
         private const val PICK_FOR_SESSION = 8
         private const val SAVE_PRESET = 1000
         private const val REMOVE_PRESET = 1001

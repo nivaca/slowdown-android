@@ -52,18 +52,6 @@ video) los decodifican los códecs de Android. Esos son del sistema del
 teléfono, no del APK.
 
 
-Lo que aprendió de otros programas
-----------------------------------
-
-| Software | Licencia | Lo que Slowdown le debe |
-|---|---|---|
-| [Transcribe-xsc-file-converter](https://github.com/roryokane/Transcribe-xsc-file-converter), de Rory O’Kane | BlueOak-1.0.0 | Cómo se escriben los marcadores en los archivos de Transcribe! (`.xsc`), que Slowdown importa (`Transcribe.kt`, según el `transcribe.py` de py-slowdown) |
-
-Slowdown no tiene nada de su código: py-slowdown leyó su analizador para
-conocer el formato, que Seventh String Software, los autores de
-Transcribe!, no publican, y Slowdown sigue a py-slowdown.
-
-
 Herramientas con que se compila y se prueba
 -------------------------------------------
 
